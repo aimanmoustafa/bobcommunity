@@ -137,9 +137,9 @@ export async function getStatsRange(from: Date, to: Date) {
 
   return {
     totalFeedback: total,
-    byCategory: byCategory.map((r) => ({ category: r.category, count: r._count })),
-    bySentiment: bySentiment.map((r) => ({ sentiment: r.sentiment, count: r._count })),
-    byUrgency: byUrgency.map((r) => ({ urgency: r.urgency, count: r._count })),
+    byCategory: byCategory.map((r: { category: string; _count: number }) => ({ category: r.category, count: r._count })),
+    bySentiment: bySentiment.map((r: { sentiment: string; _count: number }) => ({ sentiment: r.sentiment, count: r._count })),
+    byUrgency: byUrgency.map((r: { urgency: string; _count: number }) => ({ urgency: r.urgency, count: r._count })),
     unansweredCount: needingReply,
   };
 }
@@ -149,7 +149,7 @@ export async function generateDailyReport(): Promise<string> {
   const topCategories = stats.byCategory.slice(0, 5);
 
   const sentimentMap = Object.fromEntries(
-    stats.bySentiment.map((s) => [s.sentiment, s.count])
+    stats.bySentiment.map((s: { sentiment: string; count: number }) => [s.sentiment, s.count])
   );
   const total = stats.totalFeedback || 1;
 
@@ -158,7 +158,7 @@ export async function generateDailyReport(): Promise<string> {
   const neutralPercent = 100 - posPercent - negPercent;
 
   const categoryCount = (cat: string) =>
-    stats.byCategory.find((c) => c.category === cat)?.count || 0;
+    stats.byCategory.find((c: { category: string; count: number }) => c.category === cat)?.count || 0;
 
   const complaintCount = categoryCount("complaint");
   const paymentCount = categoryCount("monetization");
@@ -192,7 +192,7 @@ export async function generateWeeklyReport(): Promise<string> {
   ]);
   const topCategories = stats.byCategory.slice(0, 5);
 
-  const sentimentMap = Object.fromEntries(stats.bySentiment.map((s) => [s.sentiment, s.count]));
+  const sentimentMap = Object.fromEntries(stats.bySentiment.map((s: { sentiment: string; count: number }) => [s.sentiment, s.count]));
   const total = stats.totalFeedback || 1;
   const negTotal =
     (sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0);
@@ -200,7 +200,7 @@ export async function generateWeeklyReport(): Promise<string> {
   const negPercent = Math.round((negTotal / total) * 100);
 
   // Week-over-week helpers
-  const prevCategoryMap = Object.fromEntries(prevStats.byCategory.map((c) => [c.category, c.count]));
+  const prevCategoryMap = Object.fromEntries(prevStats.byCategory.map((c: { category: string; count: number }) => [c.category, c.count]));
   const wow = (current: number, prev: number): string => {
     if (prev === 0) return current > 0 ? "(new)" : "";
     const pct = Math.round(((current - prev) / prev) * 100);
@@ -274,7 +274,7 @@ export async function generateWeeklyReport(): Promise<string> {
 
   report += `\n*Sentiment:* ${posPercent}% Positive | ${negPercent}% Negative\n`;
 
-  const criticalCount = stats.byUrgency.find((u) => u.urgency === "critical")?.count || 0;
+  const criticalCount = stats.byUrgency.find((u: { urgency: string; count: number }) => u.urgency === "critical")?.count || 0;
   if (criticalCount > 0) {
     report += `\n⚠️ *${criticalCount}* critical issues this week -- worth a dev sync.\n`;
   }

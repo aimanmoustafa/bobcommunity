@@ -22,20 +22,23 @@ export const config = {
     apiKey: required("OPENAI_API_KEY"),
     model: process.env.OPENAI_MODEL || "gpt-4o-mini",
   },
-  slack: {
-    token: required("SLACK_BOT_TOKEN"),
-    // Default/fallback channel if no routing rule matches
-    channelId: required("SLACK_CHANNEL_ID"),
-    channels: {
-      alerts: process.env.SLACK_CHANNEL_ALERTS || process.env.SLACK_CHANNEL_ID,
-      bugs: process.env.SLACK_CHANNEL_BUGS || process.env.SLACK_CHANNEL_ID,
-      balance: process.env.SLACK_CHANNEL_BALANCE || process.env.SLACK_CHANNEL_ID,
-      feedback: process.env.SLACK_CHANNEL_FEEDBACK || process.env.SLACK_CHANNEL_ID,
-      moderation: process.env.SLACK_CHANNEL_MODERATION || process.env.SLACK_CHANNEL_ID,
-      digest: process.env.SLACK_CHANNEL_DIGEST || process.env.SLACK_CHANNEL_ID,
-      memberExits: process.env.SLACK_CHANNEL_MEMBER_EXITS || process.env.SLACK_CHANNEL_ID,
-    },
-  },
+  slack: (() => {
+    const fallback = required("SLACK_CHANNEL_ID");
+    return {
+      token: required("SLACK_BOT_TOKEN"),
+      // Default/fallback channel if no routing rule matches
+      channelId: fallback,
+      channels: {
+        alerts: process.env.SLACK_CHANNEL_ALERTS || fallback,
+        bugs: process.env.SLACK_CHANNEL_BUGS || fallback,
+        balance: process.env.SLACK_CHANNEL_BALANCE || fallback,
+        feedback: process.env.SLACK_CHANNEL_FEEDBACK || fallback,
+        moderation: process.env.SLACK_CHANNEL_MODERATION || fallback,
+        digest: process.env.SLACK_CHANNEL_DIGEST || fallback,
+        memberExits: process.env.SLACK_CHANNEL_MEMBER_EXITS || fallback,
+      },
+    };
+  })(),
   database: {
     url: required("DATABASE_URL"),
   },

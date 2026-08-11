@@ -1,11 +1,28 @@
-import type { Feedback } from "@prisma/client";
+// Structural type for a feedback row. Avoids depending on the named
+// `Feedback` export from @prisma/client, which can vary by generator setup.
+export interface FeedbackRow {
+  id: string;
+  createdAt: Date;
+  authorName: string;
+  channelName: string;
+  category: string;
+  sentiment: string;
+  urgency: string;
+  needsReply: string;
+  replyStatus: string;
+  confidence: number;
+  aiSummary: string | null;
+  content: string;
+  messageLink: string;
+  [key: string]: unknown;
+}
 
 /**
  * Converts feedback rows to CSV. Excel opens CSV natively, so this
  * covers both the "CSV" and "Excel" export requirements without needing
  * a separate xlsx dependency in the bot itself.
  */
-export function toCsv(rows: Feedback[]): string {
+export function toCsv(rows: FeedbackRow[]): string {
   const headers = [
     "id",
     "createdAt",
@@ -41,6 +58,6 @@ export function toCsv(rows: Feedback[]): string {
   return lines.join("\n");
 }
 
-export function toJson(rows: Feedback[]): string {
+export function toJson(rows: FeedbackRow[]): string {
   return JSON.stringify(rows, null, 2);
 }

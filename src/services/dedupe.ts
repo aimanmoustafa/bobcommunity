@@ -25,7 +25,7 @@ export async function isDuplicateFromAuthor(
     });
 
     const normalized = normalize(content);
-    return recent.some((r) => similarity(normalize(r.content), normalized) > 0.85);
+    return recent.some((r: { content: string }) => similarity(normalize(r.content), normalized) > 0.85);
   } catch (error) {
     logger.debug("Dedupe check failed, proceeding anyway", error);
     return false;

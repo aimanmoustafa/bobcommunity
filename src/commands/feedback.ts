@@ -23,14 +23,14 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
             value:
               stats.byCategory
                 .slice(0, 5)
-                .map((c) => `${formatCategory(c.category)}: ${c.count}`)
+                .map((c: { category: string; count: number }) => `${formatCategory(c.category)}: ${c.count}`)
                 .join("\n") || "None",
           },
           {
             name: "Sentiment",
             value:
               stats.bySentiment
-                .map((s) => `${s.sentiment}: ${s.count}`)
+                .map((s: { sentiment: string; count: number }) => `${s.sentiment}: ${s.count}`)
                 .join("\n") || "None",
           }
         )
@@ -42,7 +42,7 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
 
     if (filter === "issues") {
       const issues = await getIssues({});
-      const open = issues.filter((i) => !["resolved", "ignored"].includes(i.status));
+      const open = issues.filter((i: { status: string }) => !["resolved", "ignored"].includes(i.status));
       if (open.length === 0) {
         await interaction.editReply("No open issues right now. 🎉");
         return;
@@ -54,7 +54,7 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
           open
             .slice(0, 10)
             .map(
-              (i, idx) =>
+              (i: { priority: string; title: string; mentionCount: number; uniqueUserIds: string[]; status: string }, idx: number) =>
                 `**${idx + 1}. [${i.priority.toUpperCase()}] ${i.title.slice(0, 80)}**\n` +
                 `${i.mentionCount} mentions | ${i.uniqueUserIds.length} unique players | status: ${i.status}`
             )
@@ -105,7 +105,7 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
         feedback
           .slice(0, 10)
           .map(
-            (f, i) =>
+            (f: { category: string; aiSummary: string | null; content: string; urgency: string; sentiment: string; messageLink: string }, i: number) =>
               `**${i + 1}.** [${formatCategory(f.category)}] ${f.aiSummary || f.content.slice(0, 100)}\n` +
               `Urgency: ${f.urgency} | Sentiment: ${f.sentiment} | [Link](${f.messageLink})`
           )
