@@ -1,0 +1,124 @@
+import { prisma } from "../database";
+import { logger } from "../utils/logger";
+import type { MessageAnalysis } from "../ai/analyzer";
+
+const OPEN_STATUSES = ["new", "investigating", "acknowledged", "in_progress"];
+
+// Issues stay "attachable" for this long after the last report.
+// A matchmaking complaint 5 days after the last one is likely a new wave.
+const ISSUE_ATTACH_WINDOW_HOURS = 72;
+
+/**
+ * Attaches a feedback item to an existing open issue for the same category,
+ * or creates a new issue if none is active. Returns the issue ID.
+ *
+ * Grouping key: category. Within the attach window, all bug_report feedback
+ * joins the same open bug issue per category. This is intentionally simple
+ * and predictable; refine later with topic tags if needed.
+ */
+export async function attachToIssue(
+  analysis: MessageAnalysis,
+  authorId: string
+): Promise<string | null> {
+  try {
+    const windowStart = new Date(Date.now() - ISSUE_ATTACH_WINDOW_HOURS * 60 * 60 * 1000);
+
+    const existing = await prisma.issue.findFirst({
+      where: {
+        category: analysis.category,
+        status: { in: OPEN_STATUSES },
+        lastReported: { gte: windowStart },
+      },
+      orderBy: { lastReported: "desc" },
+    });
+
+    if (existing) {
+      const uniqueUserIds = existing.uniqueUserIds.includes(authorId)
+        ? existing.uniqueUserIds
+        : [...existing.uniqueUserIds, authorId];
+
+      const updated = await prisma.issue.update({
+        where: { id: existing.id },
+        data: {
+          mentionCount: existing.mentionCount + 1,
+          uniqueUserIds,
+          latestSummary: analysis.aiSummary,
+          lastReported: new Date(),
+          // Escalate priority if this report is more urgent than the issue's current priority
+          priority: escalatePriority(existing.priority, analysis.urgency),
+        },
+      });
+      return updated.id;
+    }
+
+    const created = await prisma.issue.create({
+      data: {
+        title: buildIssueTitle(analysis),
+        category: analysis.category,
+        priority: urgencyToPriority(analysis.urgency),
+        status: "new",
+        mentionCount: 1,
+        uniqueUserIds: [authorId],
+        sentiment: analysis.sentiment,
+        latestSummary: analysis.aiSummary,
+        recommendedAction: analysis.reason,
+      },
+    });
+
+    logger.info("New issue created", { id: created.id, title: created.title });
+    return created.id;
+  } catch (error) {
+    logger.error("Failed to attach feedback to issue", error);
+    return null;
+  }
+}
+
+export async function getIssues(filters: { status?: string; category?: string } = {}) {
+  const where: any = {};
+  if (filters.status) where.status = filters.status;
+  if (filters.category) where.category = filters.category;
+
+  return prisma.issue.findMany({
+    where,
+    orderBy: [{ lastReported: "desc" }],
+    take: 50,
+  });
+}
+
+const VALID_STATUSES = ["new", "investigating", "acknowledged", "in_progress", "resolved", "ignored"];
+
+export async function updateIssueStatus(issueId: string, status: string) {
+  if (!VALID_STATUSES.includes(status)) {
+    throw new Error(`Invalid status: ${status}. Valid: ${VALID_STATUSES.join(", ")}`);
+  }
+  return prisma.issue.update({ where: { id: issueId }, data: { status } });
+}
+
+function buildIssueTitle(analysis: MessageAnalysis): string {
+  const cat = analysis.category
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  const summary = analysis.aiSummary?.slice(0, 80) || "";
+  return summary ? `${cat}: ${summary}` : cat;
+}
+
+function urgencyToPriority(urgency: string): string {
+  switch (urgency) {
+    case "critical":
+      return "critical";
+    case "high":
+      return "high";
+    case "medium":
+      return "medium";
+    default:
+      return "low";
+  }
+}
+
+const PRIORITY_RANK: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+
+function escalatePriority(current: string, newUrgency: string): string {
+  const candidate = urgencyToPriority(newUrgency);
+  return (PRIORITY_RANK[candidate] ?? 0) > (PRIORITY_RANK[current] ?? 0) ? candidate : current;
+}

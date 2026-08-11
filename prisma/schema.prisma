@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Feedback {
+  id            String   @id @default(cuid())
+  messageId     String   @unique
+  authorId      String
+  authorName    String
+  channelId     String
+  channelName   String
+  guildId       String
+  content       String
+  messageLink   String
+  category      String
+  tags          String[] @default([])
+  sentiment     String   @default("neutral")
+  urgency       String   @default("low")
+  needsReply    String   @default("no")
+  reason        String?
+  aiSummary     String?
+  confidence    Float    @default(0)
+  replyStatus   String   @default("pending")
+  repliedBy     String?
+  slackNotified Boolean  @default(false)
+  slackTs       String?
+  issueId       String?
+  issue         Issue?   @relation(fields: [issueId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+  @@index([urgency])
+  @@index([needsReply])
+  @@index([createdAt])
+  @@index([channelId])
+  @@index([issueId])
+}
+
+model Issue {
+  id                String     @id @default(cuid())
+  title             String
+  category          String
+  priority          String     @default("medium")
+  status            String     @default("new") // new | investigating | acknowledged | in_progress | resolved | ignored
+  mentionCount      Int        @default(1)
+  uniqueUserIds     String[]   @default([])
+  sentiment         String     @default("negative")
+  latestSummary     String?
+  recommendedAction String?
+  firstReported     DateTime   @default(now())
+  lastReported      DateTime   @default(now())
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  feedback          Feedback[]
+
+  @@index([status])
+  @@index([category])
+  @@index([lastReported])
+}
+
+model DailyCategoryCount {
+  id       String   @id @default(cuid())
+  date     DateTime @db.Date
+  category String
+  count    Int      @default(0)
+
+  @@unique([date, category])
+  @@index([category, date])
+}
+
+model SchedulerState {
+  id            String    @id @default(cuid())
+  taskName      String    @unique
+  lastRunAt     DateTime?
+  updatedAt     DateTime  @updatedAt
+}
+
+model AggregationGroup {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  category       String
+  channelId      String
+  slackTs        String?
+  slackChannel   String?
+  reporterCount  Int      @default(1)
+  reporterIds    String[] @default([])
+  latestSummary  String?
+  latestUrgency  String   @default("low")
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([key])
+  @@index([expiresAt])
+}
