@@ -4,7 +4,23 @@ import { logger } from "../utils/logger";
 import { withRetry } from "../utils/retry";
 import { openaiRateLimiter } from "../utils/rateLimiter";
 
-const openai = new OpenAI({ apiKey: config.openai.apiKey });
+const openai = config.openai.enabled ? new OpenAI({ apiKey: config.openai.apiKey }) : null;
+
+/** Neutral result used when AI is disabled or a call fails. */
+function emptyAnalysis(): MessageAnalysis {
+  return {
+    isFeedback: false,
+    category: "none",
+    tags: [],
+    sentiment: "neutral",
+    urgency: "low",
+    needsReply: "no",
+    reason: "",
+    aiSummary: "",
+    confidence: 0,
+    suggestedReply: "",
+  };
+}
 
 export interface MessageAnalysis {
   isFeedback: boolean;
@@ -52,6 +68,11 @@ export async function analyzeMessage(
   channelName: string,
   recentContext?: string
 ): Promise<MessageAnalysis> {
+  // AI disabled (no API key yet): skip classification entirely.
+  if (!openai) {
+    return emptyAnalysis();
+  }
+
   const userPrompt = buildPrompt(content, authorName, channelName, recentContext);
 
   try {
@@ -84,18 +105,7 @@ export async function analyzeMessage(
     return parsed;
   } catch (error) {
     logger.error("AI analysis failed after retries", error);
-    return {
-      isFeedback: false,
-      category: "none",
-      tags: [],
-      sentiment: "neutral",
-      urgency: "low",
-      needsReply: "no",
-      reason: "",
-      aiSummary: "",
-      confidence: 0,
-      suggestedReply: "",
-    };
+    return emptyAnalysis();
   }
 }
 

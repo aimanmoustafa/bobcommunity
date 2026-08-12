@@ -28,8 +28,15 @@ export function createDiscordClient(): Client {
     partials: [Partials.Message, Partials.Channel],
   });
 
-  client.once(Events.ClientReady, (c) => {
+  client.once(Events.ClientReady, async (c) => {
     logger.info(`Bot online as ${c.user.tag}`);
+    // Register slash commands here (inside the ready handler, attached before
+    // login) so there's no race between login resolving and the event firing.
+    try {
+      await registerCommands(c.user.id);
+    } catch (error) {
+      logger.error("Failed to register slash commands", error);
+    }
   });
 
   // Auto-join newly created threads and forum posts so the bot can see
