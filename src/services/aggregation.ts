@@ -97,13 +97,6 @@ export async function saveSlackTs(groupKey: string, slackTs: string, slackChanne
   }
 }
 
-/**
- * A parallel long cooldown (separate from aggregation) still applies once a
- * group's window fully expires, so a resolved issue that resurfaces hours
- * later gets a fresh alert rather than silently reusing an old dead group.
- * This is handled naturally since expiresAt controls the group lifecycle --
- * no separate table needed anymore.
- */
 export function shouldBypassAggregation(urgency: string): boolean {
   return urgency === "critical";
 }

@@ -11,10 +11,6 @@ const ISSUE_ATTACH_WINDOW_HOURS = 72;
 /**
  * Attaches a feedback item to an existing open issue for the same category,
  * or creates a new issue if none is active. Returns the issue ID.
- *
- * Grouping key: category. Within the attach window, all bug_report feedback
- * joins the same open bug issue per category. This is intentionally simple
- * and predictable; refine later with topic tags if needed.
  */
 export async function attachToIssue(
   analysis: MessageAnalysis,
@@ -44,7 +40,6 @@ export async function attachToIssue(
           uniqueUserIds,
           latestSummary: analysis.aiSummary,
           lastReported: new Date(),
-          // Escalate priority if this report is more urgent than the issue's current priority
           priority: escalatePriority(existing.priority, analysis.urgency),
         },
       });

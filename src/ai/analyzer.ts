@@ -6,6 +6,19 @@ import { openaiRateLimiter } from "../utils/rateLimiter";
 
 const openai = config.openai.enabled ? new OpenAI({ apiKey: config.openai.apiKey }) : null;
 
+export interface MessageAnalysis {
+  isFeedback: boolean;
+  category: string;
+  tags: string[];
+  sentiment: string;
+  urgency: string;
+  needsReply: string;
+  reason: string;
+  aiSummary: string;
+  confidence: number;
+  suggestedReply: string;
+}
+
 /** Neutral result used when AI is disabled or a call fails. */
 function emptyAnalysis(): MessageAnalysis {
   return {
@@ -20,19 +33,6 @@ function emptyAnalysis(): MessageAnalysis {
     confidence: 0,
     suggestedReply: "",
   };
-}
-
-export interface MessageAnalysis {
-  isFeedback: boolean;
-  category: string;
-  tags: string[];
-  sentiment: string;
-  urgency: string;
-  needsReply: string;
-  reason: string;
-  aiSummary: string;
-  confidence: number;
-  suggestedReply: string;
 }
 
 const SYSTEM_PROMPT = `You are the AI brain of a Community Intelligence bot for "Blitz of Battle," a 2v2 mobile MOBA.

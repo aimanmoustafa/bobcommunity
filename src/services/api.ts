@@ -23,16 +23,6 @@ export function startApi(): void {
     }
   });
 
-  app.get("/stats", async (req, res) => {
-    try {
-      const days = req.query.days ? parseInt(req.query.days as string) : 7;
-      const stats = await getStats(days);
-      res.json(stats);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch stats" });
-    }
-  });
-
   app.get("/feedback/export", async (req, res) => {
     try {
       const format = (req.query.format as string) || "csv";
@@ -56,6 +46,16 @@ export function startApi(): void {
     } catch (error) {
       logger.error("Export failed", error);
       res.status(500).json({ error: "Failed to export feedback" });
+    }
+  });
+
+  app.get("/stats", async (req, res) => {
+    try {
+      const days = req.query.days ? parseInt(req.query.days as string) : 7;
+      const stats = await getStats(days);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stats" });
     }
   });
 

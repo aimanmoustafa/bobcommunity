@@ -76,26 +76,26 @@ model DailyCategoryCount {
 }
 
 model SchedulerState {
-  id            String    @id @default(cuid())
-  taskName      String    @unique
-  lastRunAt     DateTime?
-  updatedAt     DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  taskName  String    @unique
+  lastRunAt DateTime?
+  updatedAt DateTime  @updatedAt
 }
 
 model AggregationGroup {
-  id             String   @id @default(cuid())
-  key            String   @unique
-  category       String
-  channelId      String
-  slackTs        String?
-  slackChannel   String?
-  reporterCount  Int      @default(1)
-  reporterIds    String[] @default([])
-  latestSummary  String?
-  latestUrgency  String   @default("low")
-  expiresAt      DateTime
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String   @id @default(cuid())
+  key           String   @unique
+  category      String
+  channelId     String
+  slackTs       String?
+  slackChannel  String?
+  reporterCount Int      @default(1)
+  reporterIds   String[] @default([])
+  latestSummary String?
+  latestUrgency String   @default("low")
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([key])
   @@index([expiresAt])
