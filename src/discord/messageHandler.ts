@@ -3,6 +3,7 @@ import { config } from "../config";
 import { prefilterMessage } from "../ai/prefilter";
 import { analyzeMessageWithStatus } from "../ai/analyzer";
 import { sendSlackAlert, updateSlackAlert } from "../slack/notifier";
+import { sendAlertDm } from "./dmNotifier";
 import { storeFeedback } from "../services/feedback";
 import { registerReport, saveSlackTs, shouldBypassAggregation } from "../services/aggregation";
 import { isDuplicateFromAuthor } from "../services/dedupe";
@@ -129,6 +130,7 @@ export async function handleMessage(
         },
         targetChannel
       );
+      await sendAlertDm(message.client, analysis, message.author.username, channelName, messageLink, message.content);
     } else {
       const agg = await registerReport(
         analysis.category,
@@ -150,6 +152,7 @@ export async function handleMessage(
           targetChannel
         );
         if (slackTs) await saveSlackTs(agg.groupKey, slackTs, targetChannel);
+        await sendAlertDm(message.client, analysis, message.author.username, channelName, messageLink, message.content);
       } else if (agg.existingSlackTs && agg.existingSlackChannel) {
         const updated = await updateSlackAlert(
           agg.existingSlackTs,

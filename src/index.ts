@@ -36,7 +36,7 @@ async function main(): Promise<void> {
   startApi(client);
 
   // Start scheduled tasks
-  startScheduler();
+  startScheduler(client);
 
   // Graceful shutdown
   const shutdown = async () => {

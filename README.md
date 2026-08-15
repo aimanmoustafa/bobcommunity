@@ -32,6 +32,7 @@ AI-powered Discord bot for Blitz of Battle that monitors community feedback, det
 24. **Startup diagnostic banner**: on boot (and again once Discord connects), the logs print AI Provider/Model/API Key status/Discord connection/Watched Channel count/AI Analysis enabled state, so you can confirm the bot's actual capabilities at a glance
 25. **Suggested replies are now persisted**: the AI drafts a ready-to-send reply for every classified message, not just ones that trigger a Slack alert. It's saved to the database and included in CSV/JSON exports and in the `/feedback` list view -- previously this was thrown away unless a real-time alert happened to fire
 26. **AI executive summaries**: the daily digest, weekly report, and `/community pulse` each get a short 🤖 *AI Take* -- Claude reads the already-computed stats (categories, sentiment, open issues, week-over-week deltas) and writes a genuinely synthesized "here's what actually matters" paragraph, not just a template. Skipped cleanly (no empty section) if AI is disabled or unhealthy
+27. **Discord DM delivery**: set `DISCORD_DM_USER_IDS` (comma-separated user IDs) to also receive the daily digest, weekly report, and new urgent alerts as Discord DMs, alongside (not instead of) Slack. Alerts are DMed only when they first fire, not on every subsequent "N more reports" aggregation update, to avoid spam. Off entirely if the variable is unset -- Slack delivery is unaffected either way
 
 ## Architecture
 

@@ -17,6 +17,12 @@ export const config = {
       .split(",")
       .map((id) => id.trim())
       .filter(Boolean),
+    // Discord user IDs to DM with reports and urgent alerts (comma-separated).
+    // Leave unset to disable DMs entirely -- Slack delivery is unaffected either way.
+    dmUserIds: (process.env.DISCORD_DM_USER_IDS || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
   },
   ai: {
     // Optional at boot: the bot runs without it (AI analysis disabled) so it can

@@ -1,6 +1,8 @@
+import { Client } from "discord.js";
 import { prisma } from "../database";
 import { generateDailyReport, generateWeeklyReport } from "./feedback";
 import { sendDailyReport, sendWeeklyReport } from "../slack/notifier";
+import { sendReportDm } from "../discord/dmNotifier";
 import { resolveDigestChannel } from "./routing";
 import { logger } from "../utils/logger";
 
@@ -13,21 +15,21 @@ const WEEKLY_REPORT_HOUR_UTC = 21;
  * DB-backed scheduler. Persists lastRunAt per task so a process restart
  * near the trigger window doesn't cause a skipped or duplicated report.
  */
-export function startScheduler(): void {
-  setInterval(() => runChecks().catch((e) => logger.error("Scheduler tick failed", e)), CHECK_INTERVAL_MS);
+export function startScheduler(client: Client): void {
+  setInterval(() => runChecks(client).catch((e) => logger.error("Scheduler tick failed", e)), CHECK_INTERVAL_MS);
   // Also run once shortly after boot in case the process was down at trigger time
-  setTimeout(() => runChecks().catch((e) => logger.error("Scheduler initial tick failed", e)), 30_000);
+  setTimeout(() => runChecks(client).catch((e) => logger.error("Scheduler initial tick failed", e)), 30_000);
   logger.info("Scheduler started (daily report ~21:00 UTC, weekly on Sundays)");
 }
 
-async function runChecks(): Promise<void> {
+async function runChecks(client: Client): Promise<void> {
   const now = new Date();
 
-  await maybeRunDaily(now);
-  await maybeRunWeekly(now);
+  await maybeRunDaily(client, now);
+  await maybeRunWeekly(client, now);
 }
 
-async function maybeRunDaily(now: Date): Promise<void> {
+async function maybeRunDaily(client: Client, now: Date): Promise<void> {
   if (now.getUTCHours() !== DAILY_REPORT_HOUR_UTC) return;
 
   const state = await getState("daily_report");
@@ -36,6 +38,7 @@ async function maybeRunDaily(now: Date): Promise<void> {
   try {
     const report = await generateDailyReport();
     await sendDailyReport(report, resolveDigestChannel());
+    await sendReportDm(client, "📊 Daily Community Report", report);
     await setState("daily_report", now);
     logger.info("Daily report sent");
   } catch (error) {
@@ -43,7 +46,7 @@ async function maybeRunDaily(now: Date): Promise<void> {
   }
 }
 
-async function maybeRunWeekly(now: Date): Promise<void> {
+async function maybeRunWeekly(client: Client, now: Date): Promise<void> {
   if (now.getUTCDay() !== WEEKLY_REPORT_DAY) return;
   if (now.getUTCHours() !== WEEKLY_REPORT_HOUR_UTC) return;
 
@@ -53,6 +56,7 @@ async function maybeRunWeekly(now: Date): Promise<void> {
   try {
     const report = await generateWeeklyReport();
     await sendWeeklyReport(report, resolveDigestChannel());
+    await sendReportDm(client, "📅 Weekly Community Report", report);
     await setState("weekly_report", now);
     logger.info("Weekly report sent");
   } catch (error) {
