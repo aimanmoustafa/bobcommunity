@@ -55,6 +55,8 @@ model Issue {
   sentiment         String     @default("negative")
   latestSummary     String?
   recommendedAction String?
+  assignedTo        String?
+  followUpFlagged   Boolean    @default(false)
   firstReported     DateTime   @default(now())
   lastReported      DateTime   @default(now())
   createdAt         DateTime   @default(now())

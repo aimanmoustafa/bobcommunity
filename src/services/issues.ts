@@ -89,6 +89,37 @@ export async function updateIssueStatus(issueId: string, status: string) {
   return prisma.issue.update({ where: { id: issueId }, data: { status } });
 }
 
+/**
+ * Assigns an open issue to a named person (e.g. a developer) and optionally
+ * flags it for follow-up, so the digest can surface "went to X, follow-up
+ * flagged" the way a human triager would note it. Matches by a case-insensitive
+ * substring of the issue title since Discord slash commands don't have a
+ * clean way to pick from a live list of issue IDs.
+ */
+export async function assignIssue(
+  searchTerm: string,
+  assignee: string,
+  flagFollowUp?: boolean
+) {
+  const issue = await prisma.issue.findFirst({
+    where: {
+      title: { contains: searchTerm, mode: "insensitive" },
+      status: { in: OPEN_STATUSES },
+    },
+    orderBy: { lastReported: "desc" },
+  });
+
+  if (!issue) return null;
+
+  return prisma.issue.update({
+    where: { id: issue.id },
+    data: {
+      assignedTo: assignee,
+      ...(flagFollowUp !== undefined ? { followUpFlagged: flagFollowUp } : {}),
+    },
+  });
+}
+
 function buildIssueTitle(analysis: MessageAnalysis): string {
   const cat = analysis.category
     .split("_")

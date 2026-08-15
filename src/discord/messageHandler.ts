@@ -44,12 +44,19 @@ function isWatchedChannel(message: Message): boolean {
   );
 }
 
-export async function handleMessage(message: Message): Promise<MessageOutcome> {
+export async function handleMessage(
+  message: Message,
+  options: { forceWatch?: boolean } = {}
+): Promise<MessageOutcome> {
   // Skip bots and DMs
   if (message.author.bot) return { status: "not_watched" };
   if (!message.guild) return { status: "not_watched" };
   if (!message.content || message.content.trim().length === 0) return { status: "not_watched" };
-  if (!isWatchedChannel(message)) return { status: "not_watched" };
+  // The watched-channel restriction only applies to the passive live listener
+  // (bounding automatic monitoring to configured channels). Manual commands
+  // (backfill/refresh/scan) explicitly represent a requested action on a
+  // specific channel, so they pass forceWatch to bypass this gate.
+  if (!options.forceWatch && !isWatchedChannel(message)) return { status: "not_watched" };
 
   // --- Step 1: Lightweight pre-filter ---
   const prefilter = prefilterMessage(message.content);

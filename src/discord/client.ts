@@ -6,6 +6,7 @@ import {
   REST,
   Routes,
   SlashCommandBuilder,
+  ChannelType,
 } from "discord.js";
 import { config } from "../config";
 import { logger } from "../utils/logger";
@@ -146,6 +147,50 @@ export async function registerCommands(clientId: string): Promise<void> {
             opt
               .setName("window")
               .setDescription("Force a specific lookback instead of since-last-refresh")
+              .setRequired(false)
+              .addChoices(
+                { name: "Today", value: "today" },
+                { name: "Last 24 hours", value: "last24h" },
+                { name: "Last 7 days", value: "7d" }
+              )
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("assign")
+          .setDescription("Assign an open issue to someone, optionally flagging it for follow-up")
+          .addStringOption((opt) =>
+            opt.setName("issue").setDescription("Part of the issue's title to match").setRequired(true)
+          )
+          .addStringOption((opt) =>
+            opt.setName("to").setDescription("Who it's assigned to").setRequired(true)
+          )
+          .addBooleanOption((opt) =>
+            opt.setName("follow_up").setDescription("Flag for follow-up").setRequired(false)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("scan")
+          .setDescription("Manually scan any channel, even ones not in the regular watch list")
+          .addChannelOption((opt) =>
+            opt
+              .setName("channel")
+              .setDescription("The channel to scan")
+              .setRequired(true)
+              .addChannelTypes(
+                ChannelType.GuildText,
+                ChannelType.GuildAnnouncement,
+                ChannelType.GuildForum,
+                ChannelType.PublicThread,
+                ChannelType.PrivateThread,
+                ChannelType.AnnouncementThread
+              )
+          )
+          .addStringOption((opt) =>
+            opt
+              .setName("window")
+              .setDescription("How far back to look (default: just the most recent messages)")
               .setRequired(false)
               .addChoices(
                 { name: "Today", value: "today" },

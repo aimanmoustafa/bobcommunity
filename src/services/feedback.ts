@@ -21,11 +21,14 @@ interface FeedbackInput {
 
 export async function storeFeedback(input: FeedbackInput) {
   try {
-    // Group into a living issue (only for actionable categories, not praise/questions)
+    // Group into a living issue. Includes suggestion/feature_request/praise
+    // now too (not just bugs/complaints), so recurring requests and repeated
+    // praise cluster in the digest the same way bug reports do, instead of
+    // showing up as separate lines every time.
     const ISSUE_CATEGORIES = [
       "bug_report", "balance", "hero_feedback", "matchmaking", "monetization",
       "ui_ux", "performance", "complaint", "exploit", "localization",
-      "store", "progression",
+      "store", "progression", "suggestion", "feature_request", "praise",
     ];
     let issueId: string | null = null;
     if (ISSUE_CATEGORIES.includes(input.analysis.category)) {
@@ -157,51 +160,178 @@ export async function getStatsRange(from: Date, to: Date) {
 
 export async function generateDailyReport(): Promise<string> {
   const healthWarning = await getAiHealthWarning();
-  const stats = await getStats(1);
-  const topCategories = stats.byCategory.slice(0, 5);
 
-  const sentimentMap = Object.fromEntries(
-    stats.bySentiment.map((s: { sentiment: string; count: number }) => [s.sentiment, s.count])
-  );
-  const total = stats.totalFeedback || 1;
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const yesterdayStart = new Date(startOfDay.getTime() - 24 * 60 * 60 * 1000);
 
-  const posPercent = Math.round(((sentimentMap["positive"] || 0) / total) * 100);
-  const negPercent = Math.round(((sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0)) / total * 100);
-  const neutralPercent = 100 - posPercent - negPercent;
+  const todayRows = await prisma.feedback.findMany({
+    where: { createdAt: { gte: startOfDay } },
+    select: {
+      messageId: true,
+      category: true,
+      aiSummary: true,
+      content: true,
+      authorId: true,
+      authorName: true,
+      messageLink: true,
+      urgency: true,
+      needsReply: true,
+      issueId: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
 
-  const categoryCount = (cat: string) =>
-    stats.byCategory.find((c: { category: string; count: number }) => c.category === cat)?.count || 0;
+  type Row = (typeof todayRows)[number];
 
-  const complaintCount = categoryCount("complaint");
-  const paymentCount = categoryCount("monetization");
+  const feedbackFeature = todayRows.filter((r) => ["suggestion", "feature_request"].includes(r.category));
+  const complaints = todayRows.filter((r) => r.category === "complaint");
+  const payment = todayRows.filter((r) => r.category === "monetization");
+  const praise = todayRows.filter((r) => r.category === "praise");
+  const needsAttention = todayRows.filter((r) => r.urgency === "high" || r.urgency === "critical");
+  const needsReplySection = todayRows.filter((r) => r.needsReply === "yes");
 
-  let report = healthWarning ? `${healthWarning}\n\n` : "";
-  report += `*Today's Community Report*\n\n`;
-  report += `*${stats.totalFeedback}* feedback items collected\n`;
-  report += `*${stats.unansweredCount}* messages still need a reply\n\n`;
-
-  report += `*Complaints:* ${complaintCount}\n`;
-  report += `*Payment/Monetization issues:* ${paymentCount}\n\n`;
-
-  report += `*Top Categories:*\n`;
-  for (const cat of topCategories) {
-    report += `  - ${formatCategory(cat.category)}: ${cat.count}\n`;
+  // --- Clustering: group today's rows sharing the same tracked Issue, so
+  // 5 reports of the same bug/suggestion show as one line, not 5. ---
+  function clusterRows(rows: Row[]): Row[][] {
+    const groups = new Map<string, Row[]>();
+    for (const r of rows) {
+      const key = r.issueId || `single:${r.messageId}`;
+      const existing = groups.get(key);
+      if (existing) existing.push(r);
+      else groups.set(key, [r]);
+    }
+    return [...groups.values()].sort((a, b) => b.length - a.length);
   }
 
-  report += `\n*Sentiment:*\n`;
-  report += `  ${posPercent}% Positive | ${neutralPercent}% Neutral | ${negPercent}% Negative\n`;
+  // Assignment/follow-up info for any issues touched today, so the digest
+  // can show "assigned to X" / "follow-up flagged" the way a human triager would.
+  const touchedIssueIds = [...new Set(todayRows.map((r) => r.issueId).filter((id): id is string => !!id))];
+  const issueMetaMap = new Map<string, { assignedTo: string | null; followUpFlagged: boolean }>();
+  if (touchedIssueIds.length > 0) {
+    const issues = await prisma.issue.findMany({
+      where: { id: { in: touchedIssueIds } },
+      select: { id: true, assignedTo: true, followUpFlagged: true },
+    });
+    for (const i of issues) issueMetaMap.set(i.id, { assignedTo: i.assignedTo, followUpFlagged: i.followUpFlagged });
+  }
+
+  function renderClusterBullet(group: Row[]): string {
+    const latest = group[group.length - 1];
+    const uniqueAuthors = new Set(group.map((r) => r.authorId)).size;
+    const summary = truncateSummary(latest.aiSummary || latest.content);
+
+    let line: string;
+    if (group.length === 1) {
+      line = `• ${summary} *${latest.authorName}*, [Discord](${latest.messageLink})`;
+    } else {
+      line = `• ${summary} — ${group.length} reports, ${uniqueAuthors} player${uniqueAuthors === 1 ? "" : "s"}. Latest: *${latest.authorName}*, [Discord](${latest.messageLink})`;
+    }
+
+    const meta = latest.issueId ? issueMetaMap.get(latest.issueId) : undefined;
+    if (meta?.assignedTo) line += ` — assigned to ${meta.assignedTo}`;
+    if (meta?.followUpFlagged) line += ` 🚩 follow-up flagged`;
+
+    return line;
+  }
+
+  // Renders a section: clusters, caps at `limit` (sorted by cluster size),
+  // and appends a "+N more" pointer if truncated.
+  function renderSection(rows: Row[], limit: number = 5): string {
+    if (rows.length === 0) return "";
+    const clusters = clusterRows(rows);
+    const shown = clusters.slice(0, limit);
+    const lines = shown.map(renderClusterBullet).join("\n");
+    const remaining = clusters.length - shown.length;
+    return remaining > 0 ? `${lines}\n_+${remaining} more cluster${remaining === 1 ? "" : "s"} today — run /feedback today for the full list._` : lines;
+  }
+
+  async function yesterdayCountFor(categories: string[]): Promise<number> {
+    const rows = await prisma.dailyCategoryCount.findMany({
+      where: { date: yesterdayStart, category: { in: categories } },
+    });
+    return rows.reduce((sum, r) => sum + r.count, 0);
+  }
+
+  async function sectionHeader(emoji: string, label: string, rows: Row[], categories: string[]): Promise<string> {
+    const yesterday = await yesterdayCountFor(categories);
+    const delta = formatDelta(rows.length, yesterday, "vs yesterday");
+    const countPart = rows.length > 0 || yesterday > 0 ? ` (${rows.length}${delta ? `, ${delta.slice(1, -1)}` : ""})` : "";
+    return `${emoji} *${label}${countPart}*`;
+  }
+
+  let report = healthWarning ? `${healthWarning}\n\n` : "";
+  report += `*Daily digest — community feedback, complaints & payments — ${formatDigestDate(new Date())}*\n`;
+  report += `${todayRows.length} item${todayRows.length === 1 ? "" : "s"}, ${payment.length === 0 ? "no payment failures" : `${payment.length} payment issue${payment.length === 1 ? "" : "s"}`}.\n\n`;
+
+  report += `${await sectionHeader("📣", "Feedback & feature requests", feedbackFeature, ["suggestion", "feature_request"])}\n`;
+  report += feedbackFeature.length > 0 ? renderSection(feedbackFeature) : "No new suggestions today.";
+  report += "\n\n";
+
+  report += `${await sectionHeader("⚠️", "Complaints", complaints, ["complaint"])}\n`;
+  report += complaints.length > 0 ? renderSection(complaints) : "No new complaints today.";
+  report += "\n\n";
+
+  report += `${await sectionHeader("❤️", "Community Praise", praise, ["praise"])}\n`;
+  report += praise.length > 0 ? renderSection(praise) : "No new praise today.";
+  report += "\n\n";
+
+  report += `${await sectionHeader("💳", "Payment issues", payment, ["monetization"])}\n`;
+  if (payment.length > 0) {
+    report += renderSection(payment);
+  } else {
+    const openPaymentIssue = await prisma.issue.findFirst({
+      where: { category: "monetization", status: { in: ["new", "investigating", "acknowledged", "in_progress"] } },
+      orderBy: { lastReported: "desc" },
+    });
+    report += openPaymentIssue
+      ? `Nothing new. "${openPaymentIssue.title.slice(0, 70)}" is still the only open ticket.`
+      : "Nothing new. No open payment tickets.";
+  }
+  report += "\n";
+
+  if (needsReplySection.length > 0) {
+    report += `\n🕑 *Needs a reply (${needsReplySection.length})*\n`;
+    report += renderSection(needsReplySection);
+    report += "\n";
+  }
+
+  if (needsAttention.length > 0) {
+    report += `\n🔥 *Needs attention*\n`;
+    report += renderSection(needsAttention);
+    report += "\n";
+  }
 
   if (!healthWarning) {
+    const stats = await getStats(1);
+    const sentimentMap = Object.fromEntries(
+      stats.bySentiment.map((s: { sentiment: string; count: number }) => [s.sentiment, s.count])
+    );
+    const total = stats.totalFeedback || 1;
+    const posPercent = Math.round(((sentimentMap["positive"] || 0) / total) * 100);
+    const negPercent = Math.round(
+      (((sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0)) / total) * 100
+    );
+
     const snapshot =
-      `Total feedback: ${stats.totalFeedback}. Unanswered: ${stats.unansweredCount}. ` +
-      `Complaints: ${complaintCount}. Payment/monetization issues: ${paymentCount}. ` +
-      `Top categories: ${topCategories.map((c: { category: string; count: number }) => `${c.category} (${c.count})`).join(", ") || "none"}. ` +
-      `Sentiment: ${posPercent}% positive, ${neutralPercent}% neutral, ${negPercent}% negative.`;
+      `Total feedback today: ${todayRows.length}. Feature requests/suggestions: ${feedbackFeature.length}. ` +
+      `Complaints: ${complaints.length}. Payment issues: ${payment.length}. Praise: ${praise.length}. High/critical items: ${needsAttention.length}. ` +
+      `Unanswered: ${stats.unansweredCount}. Sentiment: ${posPercent}% positive, ${negPercent}% negative.`;
     const aiTake = await generateExecutiveSummary(snapshot);
     if (aiTake) report += `\n🤖 *AI Take:*\n${aiTake}\n`;
   }
 
   return report;
+}
+
+function truncateSummary(text: string, max: number = 140): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  return clean.length > max ? clean.slice(0, max) + "..." : clean;
+}
+
+function formatDigestDate(d: Date): string {
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export async function generateWeeklyReport(): Promise<string> {
@@ -225,11 +355,7 @@ export async function generateWeeklyReport(): Promise<string> {
 
   // Week-over-week helpers
   const prevCategoryMap = Object.fromEntries(prevStats.byCategory.map((c: { category: string; count: number }) => [c.category, c.count]));
-  const wow = (current: number, prev: number): string => {
-    if (prev === 0) return current > 0 ? "(new)" : "";
-    const pct = Math.round(((current - prev) / prev) * 100);
-    return pct === 0 ? "(flat WoW)" : pct > 0 ? `(+${pct}% WoW)` : `(${pct}% WoW)`;
-  };
+  const wow = (current: number, prev: number): string => formatDelta(current, prev, "WoW");
 
   // Most requested feature: top tag among feature_request category
   const featureRequests = await prisma.feedback.findMany({
@@ -376,6 +502,18 @@ export async function generatePulse(hours: number = 6): Promise<string> {
   }
 
   return report;
+}
+
+/**
+ * Shared trend-delta formatter used by both the daily digest ("vs yesterday")
+ * and the weekly report ("WoW"), so the two never drift into inconsistent
+ * wording or rounding behavior.
+ */
+function formatDelta(current: number, previous: number, label: string): string {
+  if (previous === 0) return current > 0 ? "(new)" : "";
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return `(flat ${label})`;
+  return pct > 0 ? `(+${pct}% ${label})` : `(${pct}% ${label})`;
 }
 
 function formatCategory(category: string): string {

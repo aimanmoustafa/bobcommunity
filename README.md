@@ -14,7 +14,7 @@ AI-powered Discord bot for Blitz of Battle that monitors community feedback, det
 8. **Critical issues bypass aggregation** entirely (payments, crashes, exploits, security) — always get their own immediate alert
 9. **Checks if staff already replied** before flagging "needs reply"
 10. **Retries** Anthropic and Slack calls with exponential backoff; **rate-limits** Anthropic calls to avoid 429s during message bursts
-11. **Daily report** (21:00 UTC) and **weekly report** (Sundays, with week-over-week comparisons) to Slack, with state persisted in the DB so a restart never causes a skipped or duplicated report
+11. **Daily digest** (21:00 UTC): a scannable, actionable format — 📣 Feedback & feature requests, ⚠️ Complaints, ❤️ Community Praise, 💳 Payment issues, 🕑 Needs a reply, 🔥 Needs attention (high/critical) — each with a day-over-day trend in the header (e.g. `Complaints (3, +200% vs yesterday)`), duplicate reports clustered into one line (`— 5 reports, 4 players. Latest: ...`), capped at 5 clusters per section with a "+N more" pointer, plus a 🤖 AI-written take. **Weekly report** (Sundays) with week-over-week comparisons using the same trend logic, both persisted in the DB so a restart never causes a skipped or duplicated report
 12. **Exports** via `/feedback export` (Discord file attachment) or `GET /feedback/export?format=csv|json`
 13. **Exit feedback**: when a member leaves the server, the bot DMs them a feedback request. Whether that departure also gets logged to Slack is controlled by `LOG_MEMBER_EXITS_TO_SLACK` (default off, so who-left events stay private)
 14. **Issue tracking**: actionable feedback is grouped into living issues (per category, 72h attach window) with mention counts, unique player counts, auto-escalating priority, and statuses (new / investigating / acknowledged / in_progress / resolved / ignored)
@@ -25,6 +25,8 @@ AI-powered Discord bot for Blitz of Battle that monitors community feedback, det
 19. **`/community pulse`**: a quick snapshot (default last 6 hours) — overall sentiment, main discussion topic, the biggest emerging issue, and counts of feedback/urgent items/unanswered messages
 20. **`/community report`**: runs the daily or weekly digest on demand instead of waiting for the scheduled time
 21. **`/community refresh`**: same as backfill, framed as "check for anything new right now" -- supports an optional `window` (today / last24h / 7d) to force a specific lookback instead of the default since-last-checkpoint behavior
+22. **`/community assign`**: assign an open issue to someone by matching part of its title, optionally flagging it for follow-up -- shows up in the digest as "assigned to X 🚩 follow-up flagged"
+23. **`/community scan channel:<any channel>`**: manually scan any channel via Discord's native channel picker, even one that's not in `DISCORD_WATCHED_CHANNELS`. Picking a channel explicitly is itself the authorization -- no config change needed. Supports the same `window` options (today/last24h/7d) as refresh, and uses the same per-channel checkpoint so repeated scans of the same ad hoc channel only process new messages
 22. **Real incremental refresh**: each channel remembers the last message it processed (`ChannelCheckpoint`), so repeated backfill/refresh runs only scan genuinely new messages instead of re-fetching the same 100 every time, and nothing gets silently skipped even if more than 100 messages accumulated between runs (safe backward pagination, capped at 1000 messages/run as a safety limit)
 23. **AI health tracking**: every AI call's success/failure is recorded. If the AI is disabled or has failed 3+ times in a row, `/community pulse`, `/community report`, and the daily/weekly digests all show a ⚠️ warning banner explaining why -- so "0 feedback" is never mistaken for "no community activity" when it actually means the AI layer is broken
 24. **Startup diagnostic banner**: on boot (and again once Discord connects), the logs print AI Provider/Model/API Key status/Discord connection/Watched Channel count/AI Analysis enabled state, so you can confirm the bot's actual capabilities at a glance
@@ -113,6 +115,8 @@ Bot should appear online in Discord and log `Bot online as ...`. Send a test mes
 | `/community pulse [hours]` | Quick sentiment/activity snapshot (default 6h) |
 | `/community report [period]` | Daily or weekly digest, on demand |
 | `/community refresh` | Scan recent history for anything new |
+| `/community assign issue:<search> to:<name> [follow_up]` | Assign an open issue to someone, optionally flag for follow-up |
+| `/community scan channel:<any channel> [window]` | Manually scan any channel, even ones outside the regular watch list |
 
 ## Flexible Query Syntax (in `/feedback`'s search box)
 

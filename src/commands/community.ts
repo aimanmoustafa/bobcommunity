@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { generatePulse, generateDailyReport, generateWeeklyReport } from "../services/feedback";
-import { backfillWatchedChannels } from "../services/backfill";
+import { backfillWatchedChannels, scanChannel } from "../services/backfill";
+import { assignIssue } from "../services/issues";
 
 export async function handleCommunityCommand(interaction: ChatInputCommandInteraction): Promise<void> {
   const sub = interaction.options.getSubcommand();
@@ -56,6 +57,55 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
       }
       if (result.truncatedChannels.length > 0) {
         lines.push(`Note: ${result.truncatedChannels.length} channel(s) hit the scan limit -- run refresh again to continue further back.`);
+      }
+
+      await interaction.followUp({ content: lines.join("\n"), ephemeral: true });
+      return;
+    }
+
+    if (sub === "assign") {
+      const search = interaction.options.getString("issue", true);
+      const assignee = interaction.options.getString("to", true);
+      const flagFollowUp = interaction.options.getBoolean("follow_up") ?? undefined;
+
+      const updated = await assignIssue(search, assignee, flagFollowUp);
+
+      if (!updated) {
+        await interaction.editReply(`No open issue found matching "${search}". Try a shorter or different phrase from its title.`);
+        return;
+      }
+
+      await interaction.editReply(
+        `Assigned *"${updated.title.slice(0, 80)}"* to **${assignee}**${updated.followUpFlagged ? " 🚩 (follow-up flagged)" : ""}.`
+      );
+      return;
+    }
+
+    if (sub === "scan") {
+      const channel = interaction.options.getChannel("channel", true);
+      const window = interaction.options.getString("window");
+      const hoursMap: Record<string, number> = { today: hoursSinceMidnight(), last24h: 24, "7d": 168 };
+      const hours = window ? hoursMap[window] : undefined;
+
+      await interaction.editReply(
+        window
+          ? `Scanning #${channel.name}: last ${window === "today" ? "day" : window}...`
+          : `Scanning #${channel.name}: most recent messages...`
+      );
+      const result = await scanChannel(interaction.client, channel.id, { hours });
+
+      const lines = [
+        `Scan of #${channel.name} complete: ${result.scanned} message(s) scanned.`,
+        `Stored as feedback: ${result.stored} (${result.alerted} alerted to Slack)`,
+      ];
+      if (result.aiErrors > 0) {
+        lines.push(`⚠️ ${result.aiErrors} message(s) could not be analyzed due to AI errors -- check ANTHROPIC_API_KEY / ANTHROPIC_MODEL.`);
+      }
+      if (result.aiDisabled > 0) {
+        lines.push(`⚠️ AI analysis is disabled -- ${result.aiDisabled} message(s) were seen but not classified.`);
+      }
+      if (result.truncatedChannels.length > 0) {
+        lines.push(`Note: this channel hit the scan limit -- run scan again to continue further back.`);
       }
 
       await interaction.followUp({ content: lines.join("\n"), ephemeral: true });

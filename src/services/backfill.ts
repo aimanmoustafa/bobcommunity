@@ -71,7 +71,7 @@ function tally(summary: BackfillSummary, outcome: MessageOutcome): void {
  * silently skipped. Stops at whichever boundary applies, or after
  * MAX_PAGES_PER_CHANNEL as a safety cap against runaway history scans.
  */
-async function backfillChannel(
+export async function backfillChannel(
   client: Client,
   channelId: string,
   sinceMs: number | undefined,
@@ -132,7 +132,7 @@ async function backfillChannel(
 
   for (const message of toProcess) {
     try {
-      const outcome = await handleMessage(message);
+      const outcome = await handleMessage(message, { forceWatch: true });
       tally(summary, outcome);
     } catch (error) {
       logger.error("Backfill: error processing a message", error);
@@ -194,6 +194,33 @@ export async function backfillWatchedChannels(
   }
 
   logger.info("Backfill complete", summary);
+  return summary;
+}
+
+/**
+ * Scans a single, arbitrary channel on demand -- regardless of whether it's
+ * in DISCORD_WATCHED_CHANNELS. This is the ad hoc "scan whatever channel I
+ * want" path: the person explicitly picking a channel via /community scan
+ * IS the authorization, no config change required. Uses the same checkpoint
+ * and pagination logic as the regular watched-channel backfill, so repeated
+ * scans of the same ad hoc channel only process genuinely new messages.
+ */
+export async function scanChannel(
+  client: Client,
+  channelId: string,
+  options: { hours?: number } = {}
+): Promise<BackfillSummary> {
+  const summary = emptySummary();
+  const sinceMs = options.hours ? Date.now() - options.hours * 60 * 60 * 1000 : undefined;
+
+  try {
+    await backfillChannel(client, channelId, sinceMs, summary);
+    summary.channelsProcessed++;
+  } catch (error) {
+    logger.error("Scan: failed to process channel", { channelId, error });
+  }
+
+  logger.info("Ad hoc channel scan complete", { channelId, ...summary });
   return summary;
 }
 
