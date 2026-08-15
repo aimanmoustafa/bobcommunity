@@ -103,7 +103,8 @@ export async function registerCommands(clientId: string): Promise<void> {
             { name: "Unanswered", value: "unanswered" },
             { name: "Open Issues", value: "issues" },
             { name: "Stats", value: "stats" },
-            { name: "Export CSV", value: "export" }
+            { name: "Export CSV", value: "export" },
+            { name: "Backfill (scan recent history)", value: "backfill" }
           )
       )
       .addStringOption((opt) =>

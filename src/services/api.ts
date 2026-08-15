@@ -1,12 +1,24 @@
 import express from "express";
+import type { Client } from "discord.js";
 import { getFeedback, getStats } from "./feedback";
 import { getIssues, updateIssueStatus } from "./issues";
 import { toCsv, toJson } from "./export";
+import { backfillWatchedChannels } from "./backfill";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 
-export function startApi(): void {
+export function startApi(discordClient: Client): void {
   const app = express();
+
+  app.post("/backfill", async (_req, res) => {
+    try {
+      const result = await backfillWatchedChannels(discordClient);
+      res.json(result);
+    } catch (error) {
+      logger.error("Backfill via API failed", error);
+      res.status(500).json({ error: "Backfill failed" });
+    }
+  });
 
   app.get("/feedback", async (req, res) => {
     try {

@@ -22,7 +22,7 @@ async function main(): Promise<void> {
   await client.login(config.discord.token);
 
   // Start REST API
-  startApi();
+  startApi(client);
 
   // Start scheduled tasks
   startScheduler();

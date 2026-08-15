@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder, AttachmentBuilder } from "di
 import { getFeedback, getStats } from "../services/feedback";
 import { getIssues } from "../services/issues";
 import { toCsv } from "../services/export";
+import { backfillWatchedChannels } from "../services/backfill";
 
 export async function handleSlashCommand(interaction: ChatInputCommandInteraction): Promise<void> {
   const filter = interaction.options.getString("filter", true);
@@ -62,6 +63,18 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
         )
         .setTimestamp();
       await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    if (filter === "backfill") {
+      await interaction.editReply(
+        "Scanning the last 100 messages in each watched channel... this may take a minute, I'll follow up here when done."
+      );
+      const result = await backfillWatchedChannels(interaction.client);
+      await interaction.followUp({
+        content: `Backfill complete: scanned ${result.scanned} messages across ${result.channels} channel(s). Check Slack and \`/feedback stats\` for anything newly detected.`,
+        ephemeral: true,
+      });
       return;
     }
 

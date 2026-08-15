@@ -20,6 +20,7 @@ AI-powered Discord bot for Blitz of Battle that monitors community feedback, det
 14. **Issue tracking**: actionable feedback is grouped into living issues (per category, 72h attach window) with mention counts, unique player counts, auto-escalating priority, and statuses (new / investigating / acknowledged / in_progress / resolved / ignored)
 15. **Trend detection**: if a category's mentions double vs. yesterday with 10+ mentions today, fires a one-per-day trend alert
 16. **AI is optional at boot**: if `ANTHROPIC_API_KEY` is missing, the bot still connects to Discord/Slack and runs the exit-DM feature; it logs "AI analysis: DISABLED" and skips classification until a real key is added — no redeploy needed, just update the variable
+17. **Backfill**: the bot only reacts to new messages by default. Run `/feedback backfill` (or `POST /backfill`) to scan the most recent 100 messages in each watched channel through the same analysis pipeline — useful for catching feedback that was posted before the bot went live or before its configuration was fixed
 
 ## Architecture
 
@@ -94,6 +95,7 @@ Bot should appear online in Discord and log `Bot online as ...`. Send a test mes
 | `/feedback issues` | Open tracked issues |
 | `/feedback stats` | 7-day stats overview |
 | `/feedback export` | Downloads a CSV of the last 30 days |
+| `/feedback backfill` | Scans the last 100 messages per watched channel for missed feedback |
 
 ## REST API
 
@@ -104,6 +106,7 @@ Bot should appear online in Discord and log `Bot online as ...`. Send a test mes
 | `GET /stats` | Aggregated stats |
 | `GET /issues` | Open/closed issues |
 | `PATCH /issues/:id/status` | Update issue status |
+| `POST /backfill` | Scan recent message history in watched channels |
 | `GET /health` | Health check |
 
 ## Alert Routing
@@ -129,6 +132,8 @@ bug_report, balance, hero_feedback, matchmaking, monetization, ui_ux, performanc
 - **"Used disallowed intents" crash loop**: enable Message Content + Server Members intents in the Discord Developer Portal (Bot tab → Privileged Gateway Intents → Save).
 - **"DATABASE_URL resolved to an empty string"**: the variable reference isn't resolving. Use the literal Postgres connection string instead of a `${{Service.VAR}}` reference if in doubt.
 - **"Prisma failed to detect libssl"**: use `node:20-slim` (Debian), not `node:20-alpine` — Alpine's musl libc doesn't ship OpenSSL the way Prisma's engine expects.
+- **Bot connects fine but never flags/stores any feedback despite a valid API key**: check the deploy logs for `"AI analysis failed after retries"` — this means the Anthropic call itself is erroring (wrong model name for your account, invalid key, or a network issue), and every message is silently falling back to "not feedback." The analyzer uses forced tool-use output (not prompted JSON), which eliminates the most common version of this failure (the model returning slightly-off-format text), but a bad model name or key will still surface here. Check `ANTHROPIC_MODEL` matches a model your account has access to.
+- **Feedback that's already sitting in the channel isn't showing up**: the bot only reacts to messages posted *after* it's running (`MessageCreate` events), it doesn't retroactively scan history. Run `/feedback backfill` to process the most recent 100 messages per watched channel.
 
 ## Environment Variables
 

@@ -45,22 +45,75 @@ FLAG: bug reports, balance complaints, feature requests, payment issues, confusi
 
 CRITICAL (always flag with urgency "critical"): payment/purchase problems, server/login failures, game crashes, exploit/cheating reports, security concerns, large-scale outrage.
 
-Respond with ONLY valid JSON, no other text, no markdown code fences, matching this exact schema:
+Always call the submit_analysis tool with your classification. Never respond with plain text.`;
 
-{
-  "isFeedback": boolean,
-  "category": "bug_report" | "balance" | "hero_feedback" | "matchmaking" | "monetization" | "ui_ux" | "performance" | "suggestion" | "feature_request" | "confusion" | "question" | "praise" | "complaint" | "exploit" | "toxicity" | "localization" | "store" | "progression" | "new_player" | "veteran" | "community_event" | "none",
-  "tags": string[],
-  "sentiment": "positive" | "neutral" | "negative" | "frustrated" | "angry" | "excited" | "confused",
-  "urgency": "low" | "medium" | "high" | "critical",
-  "needsReply": "yes" | "no" | "maybe",
-  "reason": "Why this needs CM attention (1-2 sentences)",
-  "aiSummary": "Concise summary of what the player is saying",
-  "confidence": number between 0 and 1,
-  "suggestedReply": "A warm, professional reply the CM can use or adapt"
-}
-
-If the message is NOT feedback, return isFeedback: false and category: "none".`;
+/**
+ * Tool definition that forces Claude to return a structured, schema-valid
+ * result via tool-use rather than hoping a prompted text response happens
+ * to be valid JSON. This is a deliberate reliability choice: prompted JSON
+ * can silently break (stray preamble text, a missed code fence) and every
+ * failure gets caught and treated as "not feedback" -- which looks exactly
+ * like the bot doing nothing. Forcing tool-use removes that failure mode.
+ */
+const ANALYSIS_TOOL: Anthropic.Tool = {
+  name: "submit_analysis",
+  description: "Submit the structured classification of a Discord message.",
+  input_schema: {
+    type: "object",
+    properties: {
+      isFeedback: {
+        type: "boolean",
+        description: "True if this message contains meaningful community feedback.",
+      },
+      category: {
+        type: "string",
+        enum: [
+          "bug_report", "balance", "hero_feedback", "matchmaking", "monetization",
+          "ui_ux", "performance", "suggestion", "feature_request", "confusion",
+          "question", "praise", "complaint", "exploit", "toxicity", "localization",
+          "store", "progression", "new_player", "veteran", "community_event", "none",
+        ],
+      },
+      tags: {
+        type: "array",
+        items: { type: "string" },
+        description: "Short topical tags, e.g. hero names, feature names.",
+      },
+      sentiment: {
+        type: "string",
+        enum: ["positive", "neutral", "negative", "frustrated", "angry", "excited", "confused"],
+      },
+      urgency: {
+        type: "string",
+        enum: ["low", "medium", "high", "critical"],
+      },
+      needsReply: {
+        type: "string",
+        enum: ["yes", "no", "maybe"],
+      },
+      reason: {
+        type: "string",
+        description: "Why this needs CM attention (1-2 sentences). Empty string if not feedback.",
+      },
+      aiSummary: {
+        type: "string",
+        description: "Concise summary of what the player is saying. Empty string if not feedback.",
+      },
+      confidence: {
+        type: "number",
+        description: "Confidence in this classification, between 0 and 1.",
+      },
+      suggestedReply: {
+        type: "string",
+        description: "A warm, professional reply the CM can use or adapt. Empty string if not feedback.",
+      },
+    },
+    required: [
+      "isFeedback", "category", "tags", "sentiment", "urgency",
+      "needsReply", "reason", "aiSummary", "confidence", "suggestedReply",
+    ],
+  },
+};
 
 export async function analyzeMessage(
   content: string,
@@ -86,15 +139,21 @@ export async function analyzeMessage(
           temperature: 0.1,
           system: SYSTEM_PROMPT,
           messages: [{ role: "user", content: userPrompt }],
+          tools: [ANALYSIS_TOOL],
+          tool_choice: { type: "tool", name: "submit_analysis" },
         }),
       { label: "Anthropic analysis", retries: 2 }
     );
 
-    const textBlock = response.content.find((block) => block.type === "text");
-    const raw = textBlock && "text" in textBlock ? textBlock.text : undefined;
-    if (!raw) throw new Error("Empty AI response");
+    const toolUseBlock = response.content.find(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+    );
 
-    const parsed = JSON.parse(extractJson(raw)) as MessageAnalysis;
+    if (!toolUseBlock) {
+      throw new Error(`No tool_use block in response (stop_reason: ${response.stop_reason})`);
+    }
+
+    const parsed = toolUseBlock.input as MessageAnalysis;
     logger.debug("AI analysis complete", {
       category: parsed.category,
       isFeedback: parsed.isFeedback,
@@ -106,17 +165,6 @@ export async function analyzeMessage(
     logger.error("AI analysis failed after retries", error);
     return emptyAnalysis();
   }
-}
-
-/**
- * Claude reliably returns bare JSON given this prompt, but strips any
- * accidental markdown code fences just in case, so parsing never breaks
- * on a stray ```json wrapper.
- */
-function extractJson(raw: string): string {
-  const trimmed = raw.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  return fenced ? fenced[1] : trimmed;
 }
 
 function buildPrompt(
