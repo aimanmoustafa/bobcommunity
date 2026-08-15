@@ -16,7 +16,7 @@ AI-powered Discord bot for Blitz of Battle that monitors community feedback, det
 10. **Retries** OpenAI and Slack calls with exponential backoff; **rate-limits** OpenAI calls to avoid 429s during message bursts
 11. **Daily report** (21:00 UTC) and **weekly report** (Sundays, with week-over-week comparisons) to Slack, with state persisted in the DB so a restart never causes a skipped or duplicated report
 12. **Exports** via `/feedback export` (Discord file attachment) or `GET /feedback/export?format=csv|json`
-13. **Exit feedback**: when a member leaves the server, the bot DMs them a feedback request and logs the departure (and whether the DM succeeded) to a dedicated Slack channel
+13. **Exit feedback**: when a member leaves the server, the bot DMs them a feedback request. Whether that departure also gets logged to Slack is controlled by `LOG_MEMBER_EXITS_TO_SLACK` (default off, so who-left events stay private)
 14. **Issue tracking**: actionable feedback is grouped into living issues (per category, 72h attach window) with mention counts, unique player counts, auto-escalating priority, and statuses (new / investigating / acknowledged / in_progress / resolved / ignored)
 15. **Trend detection**: if a category's mentions double vs. yesterday with 10+ mentions today, fires a one-per-day trend alert
 16. **AI is optional at boot**: if `OPENAI_API_KEY` is missing, the bot still connects to Discord/Slack and runs the exit-DM feature; it logs "AI analysis: DISABLED" and skips classification until a real key is added — no redeploy needed, just update the variable

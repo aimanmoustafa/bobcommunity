@@ -5,12 +5,13 @@ import { logMemberExit } from "../slack/notifier";
 
 /**
  * Fires when someone leaves the Discord server.
- * Attempts to DM them the exit-feedback message, then logs the outcome
- * to Slack regardless of whether the DM succeeded.
+ * Attempts to DM them the exit-feedback message. Whether that outcome
+ * also gets posted to Slack is controlled by LOG_MEMBER_EXITS_TO_SLACK
+ * (default off, so who-left events stay private to Discord).
  *
  * Note: Discord only allows a bot to DM a user if they still share a
  * server. Right after someone leaves, this can go either way depending
- * on timing -- so failures here are expected sometimes, not a bug.
+ * on timing -- so DM failures are expected sometimes, not a bug.
  */
 export async function handleMemberLeave(member: GuildMember | PartialGuildMember): Promise<void> {
   const username = member.user?.username || member.id;
@@ -27,6 +28,10 @@ export async function handleMemberLeave(member: GuildMember | PartialGuildMember
       username,
       error: failureReason,
     });
+  }
+
+  if (!config.bot.logMemberExitsToSlack) {
+    return;
   }
 
   await logMemberExit({

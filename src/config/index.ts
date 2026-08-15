@@ -53,5 +53,9 @@ export const config = {
     exitMessage:
       process.env.MEMBER_EXIT_MESSAGE ||
       "Hey there! You were part of the Blitz of Battle community and we noticed you left. We'd really appreciate your feedback.\n\nWhat were you hoping to see but didn't find? What made you leave? What would you like to see improved?\n\nYour input helps us make the game and community better.",
+    // Whether departures get logged to Slack (who left + DM outcome).
+    // Default OFF: the exit-feedback DM still gets attempted either way,
+    // this only controls whether that event is also posted to Slack.
+    logMemberExitsToSlack: process.env.LOG_MEMBER_EXITS_TO_SLACK === "true",
   },
 };
