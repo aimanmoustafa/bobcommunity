@@ -12,6 +12,7 @@ import { logger } from "../utils/logger";
 import { handleMessage } from "./messageHandler";
 import { handleMemberLeave } from "./memberEvents";
 import { handleSlashCommand } from "../commands/feedback";
+import { handleCommunityCommand } from "../commands/community";
 
 export function createDiscordClient(): Client {
   const client = new Client({
@@ -76,7 +77,11 @@ export function createDiscordClient(): Client {
   client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     try {
-      await handleSlashCommand(interaction);
+      if (interaction.commandName === "community") {
+        await handleCommunityCommand(interaction);
+      } else {
+        await handleSlashCommand(interaction);
+      }
     } catch (error) {
       logger.error("Error handling command", error);
     }
@@ -108,7 +113,33 @@ export async function registerCommands(clientId: string): Promise<void> {
           )
       )
       .addStringOption((opt) =>
-        opt.setName("search").setDescription("Search term").setRequired(false)
+        opt.setName("search").setDescription("Search term, or a flexible query like \"category:matchmaking sentiment:negative today\"").setRequired(false)
+      ),
+    new SlashCommandBuilder()
+      .setName("community")
+      .setDescription("Quick community intelligence commands")
+      .addSubcommand((sub) =>
+        sub
+          .setName("pulse")
+          .setDescription("Quick sentiment/activity snapshot")
+          .addIntegerOption((opt) =>
+            opt.setName("hours").setDescription("Lookback window in hours (default 6)").setRequired(false)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("report")
+          .setDescription("Full digest report")
+          .addStringOption((opt) =>
+            opt
+              .setName("period")
+              .setDescription("today or week")
+              .setRequired(false)
+              .addChoices({ name: "Today", value: "today" }, { name: "This Week", value: "week" })
+          )
+      )
+      .addSubcommand((sub) =>
+        sub.setName("refresh").setDescription("Scan recent Discord history for anything new")
       ),
   ];
 

@@ -3,6 +3,7 @@ import { getFeedback, getStats } from "../services/feedback";
 import { getIssues } from "../services/issues";
 import { toCsv } from "../services/export";
 import { backfillWatchedChannels } from "../services/backfill";
+import { parseFeedbackQuery } from "../services/queryParser";
 
 export async function handleSlashCommand(interaction: ChatInputCommandInteraction): Promise<void> {
   const filter = interaction.options.getString("filter", true);
@@ -103,7 +104,22 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
       unanswered: { needsReply: "yes" },
     };
 
-    const params = { ...filterMap[filter], search };
+    // The search box doubles as a flexible query -- supports things like
+    // "category:matchmaking sentiment:negative today" or "from 12:00 to 18:00".
+    // Anything it parses (time window, category, sentiment, urgency) overrides
+    // the dropdown preset; any leftover words become a plain text search.
+    const parsed = parseFeedbackQuery(search);
+    const params: any = { ...filterMap[filter] };
+    if (parsed.from || parsed.to) {
+      delete params.days;
+      params.from = parsed.from;
+      params.to = parsed.to;
+    }
+    if (parsed.category) params.category = parsed.category;
+    if (parsed.sentiment) params.sentiment = parsed.sentiment;
+    if (parsed.urgency) params.urgency = parsed.urgency;
+    params.search = parsed.freeText ?? (parsed.category || parsed.sentiment || parsed.urgency || parsed.from ? undefined : search);
+
     const feedback = await getFeedback(params);
 
     if (feedback.length === 0) {

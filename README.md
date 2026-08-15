@@ -21,6 +21,10 @@ AI-powered Discord bot for Blitz of Battle that monitors community feedback, det
 15. **Trend detection**: if a category's mentions double vs. yesterday with 10+ mentions today, fires a one-per-day trend alert
 16. **AI is optional at boot**: if `ANTHROPIC_API_KEY` is missing, the bot still connects to Discord/Slack and runs the exit-DM feature; it logs "AI analysis: DISABLED" and skips classification until a real key is added — no redeploy needed, just update the variable
 17. **Backfill**: the bot only reacts to new messages by default. Run `/feedback backfill` (or `POST /backfill`) to scan the most recent 100 messages in each watched channel through the same analysis pipeline — useful for catching feedback that was posted before the bot went live or before its configuration was fixed
+18. **Flexible querying**: the `/feedback` search box doubles as a mini query language — type things like `category:matchmaking sentiment:negative today`, `priority:high last_7d`, `from 12:00 to 18:00`, `yesterday`, `morning`/`afternoon`/`evening`, and it parses the time window and filters automatically, with any leftover words used as plain text search
+19. **`/community pulse`**: a quick snapshot (default last 6 hours) — overall sentiment, main discussion topic, the biggest emerging issue, and counts of feedback/urgent items/unanswered messages
+20. **`/community report`**: runs the daily or weekly digest on demand instead of waiting for the scheduled time
+21. **`/community refresh`**: same as backfill, framed as "check for anything new right now"
 
 ## Architecture
 
@@ -96,6 +100,26 @@ Bot should appear online in Discord and log `Bot online as ...`. Send a test mes
 | `/feedback stats` | 7-day stats overview |
 | `/feedback export` | Downloads a CSV of the last 30 days |
 | `/feedback backfill` | Scans the last 100 messages per watched channel for missed feedback |
+
+## Community Commands
+
+| Command | Description |
+|---------|-------------|
+| `/community pulse [hours]` | Quick sentiment/activity snapshot (default 6h) |
+| `/community report [period]` | Daily or weekly digest, on demand |
+| `/community refresh` | Scan recent history for anything new |
+
+## Flexible Query Syntax (in `/feedback`'s search box)
+
+```
+category:matchmaking sentiment:negative today
+priority:high last_7d
+from 12:00 to 18:00
+yesterday complaints about rewards
+channel:bug-reports urgency:critical
+morning / afternoon / evening
+```
+Recognized keys: `category`, `sentiment`, `urgency` (or `priority`, same thing), `channel`. Recognized time windows: `today`, `yesterday`, `last_24h`/`24h`, `last_7d`/`week`, `morning`/`afternoon`/`evening`, or an explicit `from HH:MM to HH:MM` / `since HH:MM`. Anything left over after parsing is used as a plain text search.
 
 ## REST API
 

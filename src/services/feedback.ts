@@ -75,14 +75,18 @@ export async function storeFeedback(input: FeedbackInput) {
 export async function getFeedback(filters: {
   category?: string;
   urgency?: string;
+  sentiment?: string;
   needsReply?: string;
   search?: string;
   days?: number;
+  from?: Date;
+  to?: Date;
 }) {
   const where: any = {};
 
   if (filters.category) where.category = filters.category;
   if (filters.urgency) where.urgency = filters.urgency;
+  if (filters.sentiment) where.sentiment = filters.sentiment;
   if (filters.needsReply) where.needsReply = filters.needsReply;
   if (filters.search) {
     where.OR = [
@@ -91,7 +95,11 @@ export async function getFeedback(filters: {
       { tags: { has: filters.search.toLowerCase() } },
     ];
   }
-  if (filters.days) {
+  if (filters.from || filters.to) {
+    where.createdAt = {};
+    if (filters.from) where.createdAt.gte = filters.from;
+    if (filters.to) where.createdAt.lte = filters.to;
+  } else if (filters.days) {
     where.createdAt = {
       gte: new Date(Date.now() - filters.days * 24 * 60 * 60 * 1000),
     };
@@ -277,6 +285,51 @@ export async function generateWeeklyReport(): Promise<string> {
   const criticalCount = stats.byUrgency.find((u: { urgency: string; count: number }) => u.urgency === "critical")?.count || 0;
   if (criticalCount > 0) {
     report += `\n⚠️ *${criticalCount}* critical issues this week -- worth a dev sync.\n`;
+  }
+
+  return report;
+}
+
+export async function generatePulse(hours: number = 6): Promise<string> {
+  const now = new Date();
+  const from = new Date(now.getTime() - hours * 60 * 60 * 1000);
+  const stats = await getStatsRange(from, now);
+
+  const sentimentMap = Object.fromEntries(stats.bySentiment.map((s: { sentiment: string; count: number }) => [s.sentiment, s.count]));
+  const total = stats.totalFeedback || 1;
+  const negTotal = (sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0);
+  const posTotal = sentimentMap["positive"] || 0;
+  const overallSentiment =
+    negTotal > posTotal * 1.5 ? "Negative" : posTotal > negTotal * 1.5 ? "Positive" : "Mixed/Neutral";
+
+  const topCategory = stats.byCategory[0];
+  const urgentCount =
+    (stats.byUrgency.find((u: { urgency: string; count: number }) => u.urgency === "high")?.count || 0) +
+    (stats.byUrgency.find((u: { urgency: string; count: number }) => u.urgency === "critical")?.count || 0);
+
+  const openIssues = await prisma.issue.findMany({
+    where: {
+      status: { in: ["new", "investigating", "acknowledged", "in_progress"] },
+      lastReported: { gte: from },
+    },
+    orderBy: { mentionCount: "desc" },
+    take: 1,
+  });
+
+  let report = `*Community Pulse — Last ${hours} Hours*\n\n`;
+  report += `*Overall sentiment:* ${overallSentiment}\n\n`;
+
+  if (topCategory) {
+    report += `*Main discussion:* ${formatCategory(topCategory.category)} (${topCategory.count} mentions)\n`;
+  }
+  if (openIssues.length > 0) {
+    report += `*Emerging issue:* ${openIssues[0].title.slice(0, 80)} (${openIssues[0].mentionCount} mentions, ${openIssues[0].uniqueUserIds.length} players)\n`;
+  }
+
+  report += `\n*${stats.totalFeedback}* feedback items | *${urgentCount}* high/critical | *${stats.unansweredCount}* still need a reply\n`;
+
+  if (urgentCount === 0) {
+    report += `\nNo major incidents detected.`;
   }
 
   return report;
