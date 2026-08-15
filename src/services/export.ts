@@ -12,6 +12,7 @@ export interface FeedbackRow {
   replyStatus: string;
   confidence: number;
   aiSummary: string | null;
+  suggestedReply: string | null;
   content: string;
   messageLink: string;
   [key: string]: unknown;
@@ -35,6 +36,7 @@ export function toCsv(rows: FeedbackRow[]): string {
     "replyStatus",
     "confidence",
     "aiSummary",
+    "suggestedReply",
     "content",
     "messageLink",
   ];

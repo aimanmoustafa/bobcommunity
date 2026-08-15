@@ -5,13 +5,23 @@ import { startApi } from "./services/api";
 import { startScheduler } from "./services/scheduler";
 import { logger } from "./utils/logger";
 
+function printStartupBanner(discordConnected: boolean): void {
+  const lines = [
+    "===== BoB Community Bot: Startup Diagnostic =====",
+    `AI Provider: Anthropic`,
+    `AI Model: ${config.ai.model}`,
+    `API Key: ${config.ai.enabled ? "Configured" : "MISSING"}`,
+    `Discord: ${discordConnected ? "Connected" : "Connecting..."}`,
+    `Watched Channels: ${config.discord.watchedChannelIds.length || "ALL (none configured)"}`,
+    `AI Analysis: ${config.ai.enabled ? "Enabled" : "DISABLED"}`,
+    "==================================================",
+  ];
+  for (const line of lines) logger.info(line);
+}
+
 async function main(): Promise<void> {
   logger.info("Starting BoB Community Intelligence Bot...");
-  if (config.ai.enabled) {
-    logger.info("AI analysis: ENABLED (Anthropic Claude)");
-  } else {
-    logger.warn("AI analysis: DISABLED (no ANTHROPIC_API_KEY set). Bot will connect and handle member-exit DMs; add the key to switch on feedback classification.");
-  }
+  printStartupBanner(false);
 
   // Connect to database
   await connectDatabase();
@@ -20,6 +30,7 @@ async function main(): Promise<void> {
   // client's ClientReady handler, which is attached before login).
   const client = createDiscordClient();
   await client.login(config.discord.token);
+  printStartupBanner(true);
 
   // Start REST API
   startApi(client);

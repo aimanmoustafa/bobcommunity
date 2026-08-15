@@ -25,6 +25,7 @@ model Feedback {
   needsReply    String   @default("no")
   reason        String?
   aiSummary     String?
+  suggestedReply String?
   confidence    Float    @default(0)
   replyStatus   String   @default("pending")
   repliedBy     String?
@@ -99,4 +100,26 @@ model AggregationGroup {
 
   @@index([key])
   @@index([expiresAt])
+}
+
+model ChannelCheckpoint {
+  id              String   @id @default(cuid())
+  channelId       String   @unique
+  lastMessageId   String?
+  lastProcessedAt DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Singleton row (id is always "singleton") tracking whether the AI layer is
+// actually succeeding, so reports/refresh can surface real failures instead
+// of silently showing "0 feedback" when the AI API is broken.
+model AiHealthState {
+  id                String    @id @default("singleton")
+  lastSuccessAt     DateTime?
+  lastErrorAt       DateTime?
+  lastErrorMessage  String?
+  consecutiveErrors Int       @default(0)
+  totalCalls        Int       @default(0)
+  totalErrors       Int       @default(0)
+  updatedAt         DateTime  @updatedAt
 }

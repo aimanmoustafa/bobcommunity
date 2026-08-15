@@ -2,6 +2,8 @@ import { prisma } from "../database";
 import { logger } from "../utils/logger";
 import { attachToIssue } from "./issues";
 import { recordCategoryMention, checkTrend } from "./trends";
+import { getAiHealthWarning } from "./aiHealth";
+import { generateExecutiveSummary } from "../ai/analyzer";
 import type { MessageAnalysis } from "../ai/analyzer";
 
 interface FeedbackInput {
@@ -47,6 +49,7 @@ export async function storeFeedback(input: FeedbackInput) {
         needsReply: input.analysis.needsReply,
         reason: input.analysis.reason,
         aiSummary: input.analysis.aiSummary,
+        suggestedReply: input.analysis.suggestedReply,
         confidence: input.analysis.confidence,
         slackNotified: !!input.slackTs,
         slackTs: input.slackTs,
@@ -153,6 +156,7 @@ export async function getStatsRange(from: Date, to: Date) {
 }
 
 export async function generateDailyReport(): Promise<string> {
+  const healthWarning = await getAiHealthWarning();
   const stats = await getStats(1);
   const topCategories = stats.byCategory.slice(0, 5);
 
@@ -171,7 +175,8 @@ export async function generateDailyReport(): Promise<string> {
   const complaintCount = categoryCount("complaint");
   const paymentCount = categoryCount("monetization");
 
-  let report = `*Today's Community Report*\n\n`;
+  let report = healthWarning ? `${healthWarning}\n\n` : "";
+  report += `*Today's Community Report*\n\n`;
   report += `*${stats.totalFeedback}* feedback items collected\n`;
   report += `*${stats.unansweredCount}* messages still need a reply\n\n`;
 
@@ -186,10 +191,21 @@ export async function generateDailyReport(): Promise<string> {
   report += `\n*Sentiment:*\n`;
   report += `  ${posPercent}% Positive | ${neutralPercent}% Neutral | ${negPercent}% Negative\n`;
 
+  if (!healthWarning) {
+    const snapshot =
+      `Total feedback: ${stats.totalFeedback}. Unanswered: ${stats.unansweredCount}. ` +
+      `Complaints: ${complaintCount}. Payment/monetization issues: ${paymentCount}. ` +
+      `Top categories: ${topCategories.map((c: { category: string; count: number }) => `${c.category} (${c.count})`).join(", ") || "none"}. ` +
+      `Sentiment: ${posPercent}% positive, ${neutralPercent}% neutral, ${negPercent}% negative.`;
+    const aiTake = await generateExecutiveSummary(snapshot);
+    if (aiTake) report += `\n🤖 *AI Take:*\n${aiTake}\n`;
+  }
+
   return report;
 }
 
 export async function generateWeeklyReport(): Promise<string> {
+  const healthWarning = await getAiHealthWarning();
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
@@ -252,7 +268,8 @@ export async function generateWeeklyReport(): Promise<string> {
     take: 5,
   });
 
-  let report = `*Weekly Community Report*\n\n`;
+  let report = healthWarning ? `${healthWarning}\n\n` : "";
+  report += `*Weekly Community Report*\n\n`;
   report += `*${stats.totalFeedback}* feedback items ${wow(stats.totalFeedback, prevStats.totalFeedback)}\n`;
   report += `*${stats.unansweredCount}* items still awaiting reply\n\n`;
 
@@ -287,10 +304,25 @@ export async function generateWeeklyReport(): Promise<string> {
     report += `\n⚠️ *${criticalCount}* critical issues this week -- worth a dev sync.\n`;
   }
 
+  if (!healthWarning) {
+    const topIssuesText = openIssues
+      .map((i: { priority: string; title: string; mentionCount: number }) => `${i.title} (${i.priority}, ${i.mentionCount} mentions)`)
+      .join("; ") || "none";
+    const snapshot =
+      `Total feedback: ${stats.totalFeedback} (${wow(stats.totalFeedback, prevStats.totalFeedback)} vs last week). ` +
+      `Unanswered: ${stats.unansweredCount}. Critical issues: ${criticalCount}. ` +
+      `Top categories: ${topCategories.map((c: { category: string; count: number }) => `${c.category} (${c.count})`).join(", ") || "none"}. ` +
+      `Open tracked issues: ${topIssuesText}. ` +
+      `Sentiment: ${posPercent}% positive, ${negPercent}% negative.`;
+    const aiTake = await generateExecutiveSummary(snapshot);
+    if (aiTake) report += `\n🤖 *AI Take:*\n${aiTake}\n`;
+  }
+
   return report;
 }
 
 export async function generatePulse(hours: number = 6): Promise<string> {
+  const healthWarning = await getAiHealthWarning();
   const now = new Date();
   const from = new Date(now.getTime() - hours * 60 * 60 * 1000);
   const stats = await getStatsRange(from, now);
@@ -316,7 +348,8 @@ export async function generatePulse(hours: number = 6): Promise<string> {
     take: 1,
   });
 
-  let report = `*Community Pulse — Last ${hours} Hours*\n\n`;
+  let report = healthWarning ? `${healthWarning}\n\n` : "";
+  report += `*Community Pulse — Last ${hours} Hours*\n\n`;
   report += `*Overall sentiment:* ${overallSentiment}\n\n`;
 
   if (topCategory) {
@@ -330,6 +363,16 @@ export async function generatePulse(hours: number = 6): Promise<string> {
 
   if (urgentCount === 0) {
     report += `\nNo major incidents detected.`;
+  }
+
+  if (!healthWarning) {
+    const snapshot =
+      `Window: last ${hours} hours. Total feedback: ${stats.totalFeedback}. High/critical: ${urgentCount}. ` +
+      `Unanswered: ${stats.unansweredCount}. Overall sentiment: ${overallSentiment}. ` +
+      `Top category: ${topCategory ? `${topCategory.category} (${topCategory.count})` : "none"}. ` +
+      `Emerging issue: ${openIssues.length > 0 ? openIssues[0].title : "none"}.`;
+    const aiTake = await generateExecutiveSummary(snapshot);
+    if (aiTake) report += `\n\n🤖 *AI Take:* ${aiTake}`;
   }
 
   return report;

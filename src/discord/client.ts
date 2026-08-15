@@ -139,7 +139,20 @@ export async function registerCommands(clientId: string): Promise<void> {
           )
       )
       .addSubcommand((sub) =>
-        sub.setName("refresh").setDescription("Scan recent Discord history for anything new")
+        sub
+          .setName("refresh")
+          .setDescription("Scan recent Discord history for anything new")
+          .addStringOption((opt) =>
+            opt
+              .setName("window")
+              .setDescription("Force a specific lookback instead of since-last-refresh")
+              .setRequired(false)
+              .addChoices(
+                { name: "Today", value: "today" },
+                { name: "Last 24 hours", value: "last24h" },
+                { name: "Last 7 days", value: "7d" }
+              )
+          )
       ),
   ];
 

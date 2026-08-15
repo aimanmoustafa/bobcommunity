@@ -1,7 +1,7 @@
 import { Message } from "discord.js";
 import { config } from "../config";
 import { prefilterMessage } from "../ai/prefilter";
-import { analyzeMessage } from "../ai/analyzer";
+import { analyzeMessageWithStatus } from "../ai/analyzer";
 import { sendSlackAlert, updateSlackAlert } from "../slack/notifier";
 import { storeFeedback } from "../services/feedback";
 import { registerReport, saveSlackTs, shouldBypassAggregation } from "../services/aggregation";
@@ -9,6 +9,22 @@ import { isDuplicateFromAuthor } from "../services/dedupe";
 import { getConversationContext, checkStaffReplied, resolveChannelName } from "../services/context";
 import { resolveAlertChannel } from "../services/routing";
 import { logger } from "../utils/logger";
+
+/**
+ * Outcome of processing a single message. Distinguishes every reason a
+ * message might not turn into stored feedback, so callers that need to
+ * report accurately (backfill/refresh) never have to guess why a batch
+ * came back with "0 feedback" -- was it genuinely quiet, or is the AI
+ * layer broken?
+ */
+export type MessageOutcome =
+  | { status: "not_watched" }
+  | { status: "filtered_out" }
+  | { status: "duplicate" }
+  | { status: "ai_disabled" }
+  | { status: "ai_error"; message: string }
+  | { status: "not_feedback" }
+  | { status: "stored"; alerted: boolean };
 
 /**
  * Checks whether this message's channel (or its parent, for threads/forum
@@ -28,16 +44,16 @@ function isWatchedChannel(message: Message): boolean {
   );
 }
 
-export async function handleMessage(message: Message): Promise<void> {
+export async function handleMessage(message: Message): Promise<MessageOutcome> {
   // Skip bots and DMs
-  if (message.author.bot) return;
-  if (!message.guild) return;
-  if (!message.content || message.content.trim().length === 0) return;
-  if (!isWatchedChannel(message)) return;
+  if (message.author.bot) return { status: "not_watched" };
+  if (!message.guild) return { status: "not_watched" };
+  if (!message.content || message.content.trim().length === 0) return { status: "not_watched" };
+  if (!isWatchedChannel(message)) return { status: "not_watched" };
 
   // --- Step 1: Lightweight pre-filter ---
   const prefilter = prefilterMessage(message.content);
-  if (!prefilter.shouldAnalyze) return;
+  if (!prefilter.shouldAnalyze) return { status: "filtered_out" };
 
   const channelName = resolveChannelName(message);
 
@@ -45,7 +61,7 @@ export async function handleMessage(message: Message): Promise<void> {
   const isDupe = await isDuplicateFromAuthor(message.author.id, message.content, message.channel.id);
   if (isDupe) {
     logger.debug("Skipping duplicate message from same author", { author: message.author.username });
-    return;
+    return { status: "duplicate" };
   }
 
   logger.debug("Message passed pre-filter", {
@@ -57,11 +73,21 @@ export async function handleMessage(message: Message): Promise<void> {
   // --- Step 3: Gather conversation context (works for channels, threads, forum posts) ---
   const context = await getConversationContext(message);
 
-  // --- Step 4: AI analysis ---
-  const analysis = await analyzeMessage(message.content, message.author.username, channelName, context);
+  // --- Step 4: AI analysis -- structured outcome so failures are never silent ---
+  const outcome = await analyzeMessageWithStatus(message.content, message.author.username, channelName, context);
+
+  if (outcome.status === "disabled") {
+    return { status: "ai_disabled" };
+  }
+  if (outcome.status === "error") {
+    logger.warn("Message skipped: AI analysis failed", { author: message.author.username, error: outcome.message });
+    return { status: "ai_error", message: outcome.message };
+  }
+
+  const analysis = outcome.analysis;
 
   // Not feedback? Stop here.
-  if (!analysis.isFeedback) return;
+  if (!analysis.isFeedback) return { status: "not_feedback" };
 
   // --- Step 5: Build message link ---
   const messageLink = `https://discord.com/channels/${message.guild.id}/${message.channel.id}/${message.id}`;
@@ -157,4 +183,6 @@ export async function handleMessage(message: Message): Promise<void> {
     targetChannel,
     confidence: analysis.confidence,
   });
+
+  return { status: "stored", alerted: !!slackTs };
 }

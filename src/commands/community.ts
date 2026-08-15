@@ -33,14 +33,32 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
     }
 
     if (sub === "refresh") {
+      const window = interaction.options.getString("window");
+      const hoursMap: Record<string, number> = { today: hoursSinceMidnight(), last24h: 24, "7d": 168 };
+      const hours = window ? hoursMap[window] : undefined;
+
       await interaction.editReply(
-        "Refreshing: scanning the last 100 messages in each watched channel for anything new..."
+        window
+          ? `Refreshing: scanning the last ${window === "today" ? "day" : window} across watched channels...`
+          : "Refreshing: checking each watched channel for anything new since the last refresh..."
       );
-      const result = await backfillWatchedChannels(interaction.client);
-      await interaction.followUp({
-        content: `Refresh complete: scanned ${result.scanned} messages across ${result.channels} channel(s).`,
-        ephemeral: true,
-      });
+      const result = await backfillWatchedChannels(interaction.client, { hours });
+
+      const lines = [
+        `Refresh complete: ${result.channelsProcessed} channel(s) checked, ${result.scanned} new message(s) scanned.`,
+        `Stored as feedback: ${result.stored} (${result.alerted} alerted to Slack)`,
+      ];
+      if (result.aiErrors > 0) {
+        lines.push(`⚠️ ${result.aiErrors} message(s) could not be analyzed due to AI errors -- check ANTHROPIC_API_KEY / ANTHROPIC_MODEL.`);
+      }
+      if (result.aiDisabled > 0) {
+        lines.push(`⚠️ AI analysis is disabled -- ${result.aiDisabled} message(s) were seen but not classified.`);
+      }
+      if (result.truncatedChannels.length > 0) {
+        lines.push(`Note: ${result.truncatedChannels.length} channel(s) hit the scan limit -- run refresh again to continue further back.`);
+      }
+
+      await interaction.followUp({ content: lines.join("\n"), ephemeral: true });
       return;
     }
 
@@ -48,4 +66,10 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
   } catch (error) {
     await interaction.editReply("Something went wrong running that command.");
   }
+}
+
+function hoursSinceMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return (now.getTime() - midnight.getTime()) / (60 * 60 * 1000);
 }

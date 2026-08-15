@@ -69,13 +69,20 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
 
     if (filter === "backfill") {
       await interaction.editReply(
-        "Scanning the last 100 messages in each watched channel... this may take a minute, I'll follow up here when done."
+        "Scanning each watched channel for anything new since the last check... this may take a minute, I'll follow up here when done."
       );
       const result = await backfillWatchedChannels(interaction.client);
-      await interaction.followUp({
-        content: `Backfill complete: scanned ${result.scanned} messages across ${result.channels} channel(s). Check Slack and \`/feedback stats\` for anything newly detected.`,
-        ephemeral: true,
-      });
+      const lines = [
+        `Backfill complete: ${result.channelsProcessed} channel(s) checked, ${result.scanned} new message(s) scanned.`,
+        `Stored as feedback: ${result.stored} (${result.alerted} alerted to Slack)`,
+      ];
+      if (result.aiErrors > 0) {
+        lines.push(`⚠️ ${result.aiErrors} message(s) could not be analyzed due to AI errors -- check ANTHROPIC_API_KEY / ANTHROPIC_MODEL.`);
+      }
+      if (result.aiDisabled > 0) {
+        lines.push(`⚠️ AI analysis is disabled -- ${result.aiDisabled} message(s) were seen but not classified.`);
+      }
+      await interaction.followUp({ content: lines.join("\n"), ephemeral: true });
       return;
     }
 
@@ -134,9 +141,10 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
         feedback
           .slice(0, 10)
           .map(
-            (f: { category: string; aiSummary: string | null; content: string; urgency: string; sentiment: string; messageLink: string }, i: number) =>
+            (f: { category: string; aiSummary: string | null; content: string; urgency: string; sentiment: string; messageLink: string; suggestedReply: string | null }, i: number) =>
               `**${i + 1}.** [${formatCategory(f.category)}] ${f.aiSummary || f.content.slice(0, 100)}\n` +
-              `Urgency: ${f.urgency} | Sentiment: ${f.sentiment} | [Link](${f.messageLink})`
+              `Urgency: ${f.urgency} | Sentiment: ${f.sentiment} | [Link](${f.messageLink})` +
+              (f.suggestedReply ? `\n💬 *Suggested reply:* ${f.suggestedReply.slice(0, 150)}${f.suggestedReply.length > 150 ? "..." : ""}` : "")
           )
           .join("\n\n")
       )

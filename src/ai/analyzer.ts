@@ -3,6 +3,7 @@ import { config } from "../config";
 import { logger } from "../utils/logger";
 import { withRetry } from "../utils/retry";
 import { aiRateLimiter } from "../utils/rateLimiter";
+import { recordAiSuccess, recordAiError } from "../services/aiHealth";
 
 const anthropic = config.ai.enabled ? new Anthropic({ apiKey: config.ai.apiKey }) : null;
 
@@ -19,7 +20,20 @@ export interface MessageAnalysis {
   suggestedReply: string;
 }
 
-/** Neutral result used when AI is disabled or a call fails. */
+/**
+ * Structured outcome of an analysis attempt. Distinguishes "AI is turned
+ * off", "the AI call itself failed", and "the AI ran fine and genuinely
+ * decided this isn't feedback" -- these used to all collapse into the same
+ * silent "not feedback" result, which made a broken API key indistinguishable
+ * from a quiet day in Discord. Callers that need to report accurately
+ * (backfill/refresh, health warnings) should use analyzeMessageWithStatus;
+ * the simple live-message path can keep using analyzeMessage.
+ */
+export type AnalysisOutcome =
+  | { status: "disabled" }
+  | { status: "error"; message: string }
+  | { status: "ok"; analysis: MessageAnalysis };
+
 function emptyAnalysis(): MessageAnalysis {
   return {
     isFeedback: false,
@@ -47,14 +61,6 @@ CRITICAL (always flag with urgency "critical"): payment/purchase problems, serve
 
 Always call the submit_analysis tool with your classification. Never respond with plain text.`;
 
-/**
- * Tool definition that forces Claude to return a structured, schema-valid
- * result via tool-use rather than hoping a prompted text response happens
- * to be valid JSON. This is a deliberate reliability choice: prompted JSON
- * can silently break (stray preamble text, a missed code fence) and every
- * failure gets caught and treated as "not feedback" -- which looks exactly
- * like the bot doing nothing. Forcing tool-use removes that failure mode.
- */
 const ANALYSIS_TOOL: Anthropic.Tool = {
   name: "submit_analysis",
   description: "Submit the structured classification of a Discord message.",
@@ -115,15 +121,20 @@ const ANALYSIS_TOOL: Anthropic.Tool = {
   },
 };
 
-export async function analyzeMessage(
+/**
+ * Runs the actual Anthropic call and returns a structured outcome that
+ * distinguishes disabled / errored / succeeded. This is the source of
+ * truth -- analyzeMessage() below is a thin convenience wrapper around it
+ * for callers that don't need to distinguish failure modes.
+ */
+export async function analyzeMessageWithStatus(
   content: string,
   authorName: string,
   channelName: string,
   recentContext?: string
-): Promise<MessageAnalysis> {
-  // AI disabled (no API key yet): skip classification entirely.
+): Promise<AnalysisOutcome> {
   if (!anthropic) {
-    return emptyAnalysis();
+    return { status: "disabled" };
   }
 
   const userPrompt = buildPrompt(content, authorName, channelName, recentContext);
@@ -160,10 +171,70 @@ export async function analyzeMessage(
       confidence: parsed.confidence,
     });
 
-    return parsed;
-  } catch (error) {
-    logger.error("AI analysis failed after retries", error);
-    return emptyAnalysis();
+    await recordAiSuccess();
+    return { status: "ok", analysis: parsed };
+  } catch (error: any) {
+    const message = error?.message || String(error);
+    await recordAiError(message);
+    return { status: "error", message };
+  }
+}
+
+/**
+ * Convenience wrapper for callers that just want a MessageAnalysis and are
+ * fine treating "disabled" and "error" the same way (silently skip). This
+ * preserves the bot's never-crash-on-a-bad-API-call guarantee for the live
+ * message path. Callers that need to report failures accurately (backfill,
+ * refresh, health checks) should use analyzeMessageWithStatus instead.
+ */
+export async function analyzeMessage(
+  content: string,
+  authorName: string,
+  channelName: string,
+  recentContext?: string
+): Promise<MessageAnalysis> {
+  const outcome = await analyzeMessageWithStatus(content, authorName, channelName, recentContext);
+  return outcome.status === "ok" ? outcome.analysis : emptyAnalysis();
+}
+
+/**
+ * Synthesizes a short natural-language executive summary from already-
+ * computed report data (stats, top categories, open issues). This is a
+ * second, distinct use of the AI beyond per-message classification: instead
+ * of just tagging individual messages, it reads the aggregated picture and
+ * writes a genuinely useful "here's what actually matters" paragraph, the
+ * way a sharp analyst would summarize the numbers for you.
+ *
+ * Returns null (not a placeholder string) if AI is disabled or the call
+ * fails, so callers can omit the section cleanly rather than show empty text.
+ */
+export async function generateExecutiveSummary(dataSnapshot: string): Promise<string | null> {
+  if (!anthropic) return null;
+
+  const prompt = `Here is a community feedback data snapshot for "Blitz of Battle":\n\n${dataSnapshot}\n\nWrite a short (3-4 sentence) executive summary for the community manager: what actually matters here, any notable trend, and one concrete recommended action if warranted. Be direct and specific, referencing only the data given. Do not invent numbers not present above. Plain prose, no headers or bullet points.`;
+
+  try {
+    await aiRateLimiter.acquire();
+
+    const response = await withRetry(
+      () =>
+        anthropic.messages.create({
+          model: config.ai.model,
+          max_tokens: 300,
+          temperature: 0.3,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      { label: "Anthropic executive summary", retries: 1 }
+    );
+
+    const textBlock = response.content.find((block): block is Anthropic.TextBlock => block.type === "text");
+    if (!textBlock || !textBlock.text.trim()) throw new Error("Empty summary response");
+
+    await recordAiSuccess();
+    return textBlock.text.trim();
+  } catch (error: any) {
+    await recordAiError(error?.message || String(error));
+    return null;
   }
 }
 
