@@ -3,7 +3,7 @@ import { logger } from "./logger";
 /**
  * Token-bucket rate limiter. Queues calls and releases them
  * at a controlled rate so bursts of Discord messages don't
- * slam the OpenAI API and trigger 429s.
+ * slam the Anthropic API and trigger 429s.
  */
 export class RateLimiter {
   private queue: Array<() => void> = [];
@@ -53,5 +53,5 @@ export class RateLimiter {
   }
 }
 
-// Shared limiter: max 20 OpenAI calls per 10 seconds (tune per your OpenAI tier)
-export const openaiRateLimiter = new RateLimiter(20, 10_000);
+// Shared limiter: max 20 AI calls per 10 seconds (tune per your Anthropic tier)
+export const aiRateLimiter = new RateLimiter(20, 10_000);

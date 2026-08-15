@@ -8,7 +8,7 @@ interface RetryOptions {
 
 /**
  * Retries an async function with exponential backoff.
- * Used for OpenAI and Slack API calls that can fail transiently.
+ * Used for Anthropic and Slack API calls that can fail transiently.
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,

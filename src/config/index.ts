@@ -18,13 +18,13 @@ export const config = {
       .map((id) => id.trim())
       .filter(Boolean),
   },
-  openai: {
+  ai: {
     // Optional at boot: the bot runs without it (AI analysis disabled) so it can
     // still connect to Discord/Slack and handle member-exit DMs. Add the key to
     // switch on full feedback classification.
-    apiKey: process.env.OPENAI_API_KEY || "",
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    enabled: !!process.env.OPENAI_API_KEY,
+    apiKey: process.env.ANTHROPIC_API_KEY || "",
+    model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001",
+    enabled: !!process.env.ANTHROPIC_API_KEY,
   },
   slack: (() => {
     const fallback = required("SLACK_CHANNEL_ID");

@@ -14,11 +14,11 @@
     "format": "prettier --write src/**/*.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
     "@prisma/client": "^5.20.0",
     "@slack/web-api": "^7.5.0",
     "discord.js": "^14.16.0",
     "dotenv": "^16.4.5",
-    "openai": "^4.68.0",
     "winston": "^3.14.0",
     "express": "^4.21.0"
   },

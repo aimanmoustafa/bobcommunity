@@ -7,10 +7,10 @@ import { logger } from "./utils/logger";
 
 async function main(): Promise<void> {
   logger.info("Starting BoB Community Intelligence Bot...");
-  if (config.openai.enabled) {
-    logger.info("AI analysis: ENABLED");
+  if (config.ai.enabled) {
+    logger.info("AI analysis: ENABLED (Anthropic Claude)");
   } else {
-    logger.warn("AI analysis: DISABLED (no OPENAI_API_KEY set). Bot will connect and handle member-exit DMs; add the key to switch on feedback classification.");
+    logger.warn("AI analysis: DISABLED (no ANTHROPIC_API_KEY set). Bot will connect and handle member-exit DMs; add the key to switch on feedback classification.");
   }
 
   // Connect to database

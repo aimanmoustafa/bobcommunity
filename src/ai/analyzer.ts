@@ -1,10 +1,10 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { withRetry } from "../utils/retry";
-import { openaiRateLimiter } from "../utils/rateLimiter";
+import { aiRateLimiter } from "../utils/rateLimiter";
 
-const openai = config.openai.enabled ? new OpenAI({ apiKey: config.openai.apiKey }) : null;
+const anthropic = config.ai.enabled ? new Anthropic({ apiKey: config.ai.apiKey }) : null;
 
 export interface MessageAnalysis {
   isFeedback: boolean;
@@ -45,7 +45,7 @@ FLAG: bug reports, balance complaints, feature requests, payment issues, confusi
 
 CRITICAL (always flag with urgency "critical"): payment/purchase problems, server/login failures, game crashes, exploit/cheating reports, security concerns, large-scale outrage.
 
-Respond ONLY with valid JSON matching this exact schema:
+Respond with ONLY valid JSON, no other text, no markdown code fences, matching this exact schema:
 
 {
   "isFeedback": boolean,
@@ -69,33 +69,32 @@ export async function analyzeMessage(
   recentContext?: string
 ): Promise<MessageAnalysis> {
   // AI disabled (no API key yet): skip classification entirely.
-  if (!openai) {
+  if (!anthropic) {
     return emptyAnalysis();
   }
 
   const userPrompt = buildPrompt(content, authorName, channelName, recentContext);
 
   try {
-    await openaiRateLimiter.acquire();
+    await aiRateLimiter.acquire();
 
     const response = await withRetry(
       () =>
-        openai.chat.completions.create({
-          model: config.openai.model,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userPrompt },
-          ],
+        anthropic.messages.create({
+          model: config.ai.model,
+          max_tokens: 1024,
           temperature: 0.1,
-          response_format: { type: "json_object" },
+          system: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: userPrompt }],
         }),
-      { label: "OpenAI analysis", retries: 2 }
+      { label: "Anthropic analysis", retries: 2 }
     );
 
-    const raw = response.choices[0]?.message?.content;
+    const textBlock = response.content.find((block) => block.type === "text");
+    const raw = textBlock && "text" in textBlock ? textBlock.text : undefined;
     if (!raw) throw new Error("Empty AI response");
 
-    const parsed = JSON.parse(raw) as MessageAnalysis;
+    const parsed = JSON.parse(extractJson(raw)) as MessageAnalysis;
     logger.debug("AI analysis complete", {
       category: parsed.category,
       isFeedback: parsed.isFeedback,
@@ -107,6 +106,17 @@ export async function analyzeMessage(
     logger.error("AI analysis failed after retries", error);
     return emptyAnalysis();
   }
+}
+
+/**
+ * Claude reliably returns bare JSON given this prompt, but strips any
+ * accidental markdown code fences just in case, so parsing never breaks
+ * on a stray ```json wrapper.
+ */
+function extractJson(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  return fenced ? fenced[1] : trimmed;
 }
 
 function buildPrompt(

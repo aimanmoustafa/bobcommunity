@@ -13,13 +13,13 @@ AI-powered Discord bot for Blitz of Battle that monitors community feedback, det
 7. **Sends Slack alerts** only when something actually needs CM attention, with category, urgency, sentiment, confidence score, AI summary, reason, a clickable Discord message link, and a suggested reply
 8. **Critical issues bypass aggregation** entirely (payments, crashes, exploits, security) — always get their own immediate alert
 9. **Checks if staff already replied** before flagging "needs reply"
-10. **Retries** OpenAI and Slack calls with exponential backoff; **rate-limits** OpenAI calls to avoid 429s during message bursts
+10. **Retries** Anthropic and Slack calls with exponential backoff; **rate-limits** Anthropic calls to avoid 429s during message bursts
 11. **Daily report** (21:00 UTC) and **weekly report** (Sundays, with week-over-week comparisons) to Slack, with state persisted in the DB so a restart never causes a skipped or duplicated report
 12. **Exports** via `/feedback export` (Discord file attachment) or `GET /feedback/export?format=csv|json`
 13. **Exit feedback**: when a member leaves the server, the bot DMs them a feedback request. Whether that departure also gets logged to Slack is controlled by `LOG_MEMBER_EXITS_TO_SLACK` (default off, so who-left events stay private)
 14. **Issue tracking**: actionable feedback is grouped into living issues (per category, 72h attach window) with mention counts, unique player counts, auto-escalating priority, and statuses (new / investigating / acknowledged / in_progress / resolved / ignored)
 15. **Trend detection**: if a category's mentions double vs. yesterday with 10+ mentions today, fires a one-per-day trend alert
-16. **AI is optional at boot**: if `OPENAI_API_KEY` is missing, the bot still connects to Discord/Slack and runs the exit-DM feature; it logs "AI analysis: DISABLED" and skips classification until a real key is added — no redeploy needed, just update the variable
+16. **AI is optional at boot**: if `ANTHROPIC_API_KEY` is missing, the bot still connects to Discord/Slack and runs the exit-DM feature; it logs "AI analysis: DISABLED" and skips classification until a real key is added — no redeploy needed, just update the variable
 
 ## Architecture
 
@@ -44,7 +44,7 @@ Discord Message (channel, thread, or forum post)
 - Node.js 20+
 - PostgreSQL (or use Docker Compose)
 - Discord Bot Token (with Message Content + Server Members intents enabled)
-- OpenAI API Key (optional at first boot)
+- Anthropic API Key (optional at first boot)
 - Slack Bot Token + Channel ID
 
 ### 2. Discord Bot Setup
@@ -80,7 +80,7 @@ npm run dev
 
 ### 5. Verify
 
-Bot should appear online in Discord and log `Bot online as ...`. Send a test message like "the matchmaking is really broken" and check Slack for the alert (requires a real `OPENAI_API_KEY`).
+Bot should appear online in Discord and log `Bot online as ...`. Send a test message like "the matchmaking is really broken" and check Slack for the alert (requires a real `ANTHROPIC_API_KEY`).
 
 ## Slash Commands
 
