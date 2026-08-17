@@ -56,6 +56,9 @@ export const config = {
     aggregationWindowMinutes: parseInt(process.env.AGGREGATION_WINDOW_MINUTES || "120"),
     logLevel: process.env.LOG_LEVEL || "info",
     port: parseInt(process.env.PORT || "3000"),
+    // Used only for display (e.g. /community peak) -- activity data is stored
+    // in UTC internally either way. Default +2 matches Cairo standard time.
+    timezoneOffsetHours: parseInt(process.env.TIMEZONE_OFFSET_HOURS || "2"),
     exitMessage:
       process.env.MEMBER_EXIT_MESSAGE ||
       "Hey there! You were part of the Blitz of Battle community and we noticed you left. We'd really appreciate your feedback.\n\nWhat were you hoping to see but didn't find? What made you leave? What would you like to see improved?\n\nYour input helps us make the game and community better.",
@@ -63,5 +66,13 @@ export const config = {
     // Default OFF: the exit-feedback DM still gets attempted either way,
     // this only controls whether that event is also posted to Slack.
     logMemberExitsToSlack: process.env.LOG_MEMBER_EXITS_TO_SLACK === "true",
+  },
+  notion: {
+    // Optional: if unset, Notion sync is silently skipped (same optional-integration
+    // pattern as AI/DM). One internal integration token is all that's needed --
+    // the target database IDs are fixed constants in src/services/notion.ts since
+    // they belong to this specific Notion workspace.
+    apiKey: process.env.NOTION_API_KEY || "",
+    enabled: !!process.env.NOTION_API_KEY,
   },
 };

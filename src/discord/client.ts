@@ -138,6 +138,9 @@ export async function registerCommands(clientId: string): Promise<void> {
           )
       )
       .addSubcommand((sub) =>
+        sub.setName("peak").setDescription("Find peak engagement times -- best time to run an event")
+      )
+      .addSubcommand((sub) =>
         sub
           .setName("report")
           .setDescription("Full digest report")

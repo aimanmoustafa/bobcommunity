@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { generatePulse, generateDailyReport, generateWeeklyReport } from "../services/feedback";
 import { backfillWatchedChannels, scanChannel } from "../services/backfill";
 import { assignIssue } from "../services/issues";
+import { generatePeakTimesReport } from "../services/activity";
 import { THEME_COLORS } from "../utils/theme";
 
 export async function handleCommunityCommand(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -10,6 +11,17 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
   await interaction.deferReply({ ephemeral: true });
 
   try {
+    if (sub === "peak") {
+      const report = await generatePeakTimesReport();
+      const embed = new EmbedBuilder()
+        .setTitle("📈 Peak Engagement Times")
+        .setColor(THEME_COLORS.orange)
+        .setDescription(report)
+        .setTimestamp();
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
     if (sub === "pulse") {
       const hours = interaction.options.getInteger("hours") || 6;
       const report = await generatePulse(hours);

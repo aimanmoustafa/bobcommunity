@@ -32,7 +32,7 @@ export async function storeFeedback(input: FeedbackInput) {
     ];
     let issueId: string | null = null;
     if (ISSUE_CATEGORIES.includes(input.analysis.category)) {
-      issueId = await attachToIssue(input.analysis, input.authorId);
+      issueId = await attachToIssue(input.analysis, input.authorId, input.authorName, input.messageLink);
     }
 
     const feedback = await prisma.feedback.create({

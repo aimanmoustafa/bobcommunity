@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
+    "@notionhq/client": "^2.2.15",
     "@prisma/client": "^5.20.0",
     "@slack/web-api": "^7.5.0",
     "discord.js": "^14.16.0",

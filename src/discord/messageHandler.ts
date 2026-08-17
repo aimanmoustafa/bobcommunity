@@ -9,6 +9,7 @@ import { registerReport, saveSlackTs, shouldBypassAggregation } from "../service
 import { isDuplicateFromAuthor } from "../services/dedupe";
 import { getConversationContext, checkStaffReplied, resolveChannelName } from "../services/context";
 import { resolveAlertChannel } from "../services/routing";
+import { recordActivity } from "../services/activity";
 import { logger } from "../utils/logger";
 
 /**
@@ -58,6 +59,17 @@ export async function handleMessage(
   // (backfill/refresh/scan) explicitly represent a requested action on a
   // specific channel, so they pass forceWatch to bypass this gate.
   if (!options.forceWatch && !isWatchedChannel(message)) return { status: "not_watched" };
+
+  // Activity tracking runs only for the live listener (forceWatch=false),
+  // never for backfill/scan/refresh -- those can re-process the same
+  // historical messages on repeated runs (e.g. running the same 7d window
+  // scan twice), which would double-count activity since there's no
+  // per-message dedup here the way the Feedback table has via messageId
+  // uniqueness. The live path fires exactly once per real message, so it's
+  // the only safe source for this counter.
+  if (!options.forceWatch) {
+    recordActivity(message).catch(() => {});
+  }
 
   // --- Step 1: Lightweight pre-filter ---
   const prefilter = prefilterMessage(message.content);

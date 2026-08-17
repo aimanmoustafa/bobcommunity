@@ -57,6 +57,12 @@ model Issue {
   recommendedAction String?
   assignedTo        String?
   followUpFlagged   Boolean    @default(false)
+  // Notion sync: which page(s) this issue is mirrored to, so repeat reports
+  // update the existing page instead of creating a duplicate every time.
+  notionCmPageId    String?
+  notionCmPageUrl   String?
+  notionBugPageId   String?
+  notionFeaturePageId String?
   firstReported     DateTime   @default(now())
   lastReported      DateTime   @default(now())
   createdAt         DateTime   @default(now())
@@ -135,4 +141,32 @@ model ExitDmRecipient {
   username  String
   sentAt    DateTime  @default(now())
   repliedAt DateTime?
+}
+
+// Activity heatmap for finding peak engagement times (e.g. best time to run
+// an event). Tracks EVERY message in watched channels -- including casual
+// chat that never becomes "feedback" -- since raw activity volume is exactly
+// the signal needed here, unlike the Feedback table which is a filtered
+// subset. Bucketed by (dayOfWeek, hour) in UTC; capped at 168 rows total
+// since it's a fixed weekly grid that just accumulates counts over time.
+model ActivityBucket {
+  id           String @id @default(cuid())
+  dayOfWeek    Int // 0=Sunday .. 6=Saturday (UTC)
+  hour         Int // 0-23 (UTC)
+  messageCount Int    @default(0)
+
+  @@unique([dayOfWeek, hour])
+}
+
+// One row per (time slot, author) ever seen -- lets us count unique active
+// participants per slot, not just raw message volume, without needing to
+// store unbounded per-message history. Bounded by (168 slots) x (distinct
+// active members), which stays reasonable even for a large community.
+model ActivityBucketAuthor {
+  id        String @id @default(cuid())
+  dayOfWeek Int
+  hour      Int
+  authorId  String
+
+  @@unique([dayOfWeek, hour, authorId])
 }

@@ -1,5 +1,6 @@
 import { prisma } from "../database";
 import { logger } from "../utils/logger";
+import { createNotionEntry, updateNotionEntryForEscalation } from "./notion";
 import type { MessageAnalysis } from "../ai/analyzer";
 
 const OPEN_STATUSES = ["new", "investigating", "acknowledged", "in_progress"];
@@ -11,10 +12,18 @@ const ISSUE_ATTACH_WINDOW_HOURS = 72;
 /**
  * Attaches a feedback item to an existing open issue for the same category,
  * or creates a new issue if none is active. Returns the issue ID.
+ *
+ * Also drives the Notion sync: a brand-new issue creates a CM DB entry
+ * (plus a linked Bug/Feature DB entry where relevant); a repeat report on
+ * an existing issue patches that same Notion page instead of creating a
+ * duplicate, updating report counts and any urgency escalation. Notion
+ * sync is a no-op if disabled, and never blocks issue tracking if it fails.
  */
 export async function attachToIssue(
   analysis: MessageAnalysis,
-  authorId: string
+  authorId: string,
+  authorName: string,
+  messageLink: string
 ): Promise<string | null> {
   try {
     const windowStart = new Date(Date.now() - ISSUE_ATTACH_WINDOW_HOURS * 60 * 60 * 1000);
@@ -43,6 +52,17 @@ export async function attachToIssue(
           priority: escalatePriority(existing.priority, analysis.urgency),
         },
       });
+
+      if (existing.notionCmPageId) {
+        await updateNotionEntryForEscalation(existing.notionCmPageId, {
+          category: analysis.category,
+          urgency: updated.priority,
+          uniqueReporterCount: uniqueUserIds.length,
+          mentionCount: updated.mentionCount,
+          latestSummary: analysis.aiSummary,
+        });
+      }
+
       return updated.id;
     }
 
@@ -61,6 +81,27 @@ export async function attachToIssue(
     });
 
     logger.info("New issue created", { id: created.id, title: created.title });
+
+    const notionResult = await createNotionEntry({
+      analysis,
+      authorName,
+      messageLink,
+      createdAt: new Date(),
+      uniqueReporterCount: 1,
+    });
+
+    if (notionResult) {
+      await prisma.issue.update({
+        where: { id: created.id },
+        data: {
+          notionCmPageId: notionResult.cmPageId,
+          notionCmPageUrl: notionResult.cmPageUrl,
+          notionBugPageId: notionResult.bugPageId,
+          notionFeaturePageId: notionResult.featurePageId,
+        },
+      });
+    }
+
     return created.id;
   } catch (error) {
     logger.error("Failed to attach feedback to issue", error);
