@@ -4,6 +4,7 @@ import { getIssues } from "../services/issues";
 import { toCsv } from "../services/export";
 import { backfillWatchedChannels } from "../services/backfill";
 import { parseFeedbackQuery } from "../services/queryParser";
+import { THEME_COLORS } from "../utils/theme";
 
 export async function handleSlashCommand(interaction: ChatInputCommandInteraction): Promise<void> {
   const filter = interaction.options.getString("filter", true);
@@ -16,7 +17,7 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
       const stats = await getStats(7);
       const embed = new EmbedBuilder()
         .setTitle("📊 Community Feedback Stats (7 days)")
-        .setColor(0x5865f2)
+        .setColor(THEME_COLORS.orange)
         .addFields(
           { name: "Total Feedback", value: `${stats.totalFeedback}`, inline: true },
           { name: "Unanswered", value: `${stats.unansweredCount}`, inline: true },
@@ -51,7 +52,7 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
       }
       const embed = new EmbedBuilder()
         .setTitle("🔎 Open Community Issues")
-        .setColor(0xed4245)
+        .setColor(THEME_COLORS.darkOrange)
         .setDescription(
           open
             .slice(0, 10)
@@ -136,7 +137,7 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
 
     const embed = new EmbedBuilder()
       .setTitle(`📋 Feedback: ${filter}${search ? ` (search: ${search})` : ""}`)
-      .setColor(0x5865f2)
+      .setColor(THEME_COLORS.orange)
       .setDescription(
         feedback
           .slice(0, 10)

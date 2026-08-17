@@ -2,6 +2,7 @@ import { GuildMember, PartialGuildMember } from "discord.js";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { logMemberExit } from "../slack/notifier";
+import { prisma } from "../database";
 
 /**
  * Fires when someone leaves the Discord server.
@@ -28,6 +29,20 @@ export async function handleMemberLeave(member: GuildMember | PartialGuildMember
       username,
       error: failureReason,
     });
+  }
+
+  if (dmSent) {
+    // Remember them so a later reply in this DM channel can be recognized
+    // as exit feedback and forwarded, instead of silently ignored.
+    try {
+      await prisma.exitDmRecipient.upsert({
+        where: { userId: member.id },
+        create: { userId: member.id, username },
+        update: { username, sentAt: new Date(), repliedAt: null },
+      });
+    } catch (error) {
+      logger.error("Failed to record exit DM recipient", error);
+    }
   }
 
   if (!config.bot.logMemberExitsToSlack) {

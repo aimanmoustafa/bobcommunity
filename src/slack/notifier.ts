@@ -2,6 +2,7 @@ import { WebClient } from "@slack/web-api";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { withRetry } from "../utils/retry";
+import { THEME_COLORS, urgencyThemeColor } from "../utils/theme";
 import type { MessageAnalysis } from "../ai/analyzer";
 
 const slack = new WebClient(config.slack.token);
@@ -123,7 +124,12 @@ export async function sendSlackAlert(
         slack.chat.postMessage({
           channel: targetChannel,
           text: `${urgencyEmoji} Community Alert: ${analysis.category} from ${authorName}`,
-          blocks: buildBlocks(analysis, authorName, channelName, messageLink, messageContent),
+          attachments: [
+            {
+              color: urgencyThemeColor(analysis.urgency),
+              blocks: buildBlocks(analysis, authorName, channelName, messageLink, messageContent),
+            },
+          ],
         }),
       { label: "Slack postMessage", retries: 3 }
     );
@@ -158,7 +164,12 @@ export async function updateSlackAlert(
           channel: targetChannel,
           ts: slackTs,
           text: `${urgencyEmoji} Community Alert (${reporterCount} reports): ${analysis.category}`,
-          blocks: buildBlocks(analysis, authorName, channelName, messageLink, messageContent, reporterCount),
+          attachments: [
+            {
+              color: urgencyThemeColor(analysis.urgency),
+              blocks: buildBlocks(analysis, authorName, channelName, messageLink, messageContent, reporterCount),
+            },
+          ],
         }),
       { label: "Slack chat.update", retries: 3 }
     );
@@ -177,9 +188,14 @@ export async function sendDailyReport(report: string, targetChannel: string): Pr
         slack.chat.postMessage({
           channel: targetChannel,
           text: report,
-          blocks: [
-            { type: "header", text: { type: "plain_text", text: "📊 Daily Community Report" } },
-            { type: "section", text: { type: "mrkdwn", text: report } },
+          attachments: [
+            {
+              color: THEME_COLORS.orange,
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: "📊 Daily Community Report" } },
+                { type: "section", text: { type: "mrkdwn", text: report } },
+              ],
+            },
           ],
         }),
       { label: "Slack daily report", retries: 3 }
@@ -197,9 +213,14 @@ export async function sendWeeklyReport(report: string, targetChannel: string): P
         slack.chat.postMessage({
           channel: targetChannel,
           text: report,
-          blocks: [
-            { type: "header", text: { type: "plain_text", text: "📅 Weekly Community Report" } },
-            { type: "section", text: { type: "mrkdwn", text: report } },
+          attachments: [
+            {
+              color: THEME_COLORS.orange,
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: "📅 Weekly Community Report" } },
+                { type: "section", text: { type: "mrkdwn", text: report } },
+              ],
+            },
           ],
         }),
       { label: "Slack weekly report", retries: 3 }
@@ -226,23 +247,28 @@ export async function sendTrendAlert(payload: TrendAlertPayload, targetChannel: 
         slack.chat.postMessage({
           channel: targetChannel,
           text: `⚠️ TREND DETECTED: ${prettyCategory} mentions spiking (${growthLabel})`,
-          blocks: [
-            { type: "header", text: { type: "plain_text", text: "⚠️ Trend Detected" } },
+          attachments: [
             {
-              type: "section",
-              fields: [
-                { type: "mrkdwn", text: `*Topic:*\n${prettyCategory}` },
-                { type: "mrkdwn", text: `*Mentions:*\n${growthLabel}` },
-                { type: "mrkdwn", text: `*Today so far:*\n${todayCount}` },
-                { type: "mrkdwn", text: `*Status:*\nEscalating` },
-              ],
-            },
-            {
-              type: "context",
-              elements: [
+              color: THEME_COLORS.darkOrange,
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: "⚠️ Trend Detected" } },
                 {
-                  type: "mrkdwn",
-                  text: "Recommendation: Community/LiveOps should investigate this spike.",
+                  type: "section",
+                  fields: [
+                    { type: "mrkdwn", text: `*Topic:*\n${prettyCategory}` },
+                    { type: "mrkdwn", text: `*Mentions:*\n${growthLabel}` },
+                    { type: "mrkdwn", text: `*Today so far:*\n${todayCount}` },
+                    { type: "mrkdwn", text: `*Status:*\nEscalating` },
+                  ],
+                },
+                {
+                  type: "context",
+                  elements: [
+                    {
+                      type: "mrkdwn",
+                      text: "Recommendation: Community/LiveOps should investigate this spike.",
+                    },
+                  ],
                 },
               ],
             },
@@ -272,22 +298,27 @@ export async function logMemberExit(payload: MemberExitPayload): Promise<void> {
         slack.chat.postMessage({
           channel: config.slack.channels.memberExits,
           text: `👋 ${username} left ${guildName}`,
-          blocks: [
+          attachments: [
             {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `👋 *${username}* (\`${userId}\`) left *${guildName}*`,
-              },
-            },
-            {
-              type: "context",
-              elements: [
+              color: THEME_COLORS.lightOrange,
+              blocks: [
                 {
-                  type: "mrkdwn",
-                  text: dmSent
-                    ? "✅ Exit-feedback DM sent successfully"
-                    : `⚠️ DM could not be delivered${failureReason ? ` (${failureReason})` : ""} -- consider a manual follow-up`,
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: `👋 *${username}* (\`${userId}\`) left *${guildName}*`,
+                  },
+                },
+                {
+                  type: "context",
+                  elements: [
+                    {
+                      type: "mrkdwn",
+                      text: dmSent
+                        ? "✅ Exit-feedback DM sent successfully"
+                        : `⚠️ DM could not be delivered${failureReason ? ` (${failureReason})` : ""} -- consider a manual follow-up`,
+                    },
+                  ],
                 },
               ],
             },

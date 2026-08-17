@@ -125,3 +125,14 @@ model AiHealthState {
   totalErrors       Int       @default(0)
   updatedAt         DateTime  @updatedAt
 }
+
+// Tracks who received the exit-feedback DM, so a later reply from that same
+// user (in the DM channel, after they've left the server) can be recognized
+// and forwarded to the configured DM user(s) instead of being ignored.
+model ExitDmRecipient {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  username  String
+  sentAt    DateTime  @default(now())
+  repliedAt DateTime?
+}

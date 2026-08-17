@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { generatePulse, generateDailyReport, generateWeeklyReport } from "../services/feedback";
 import { backfillWatchedChannels, scanChannel } from "../services/backfill";
 import { assignIssue } from "../services/issues";
+import { THEME_COLORS } from "../utils/theme";
 
 export async function handleCommunityCommand(interaction: ChatInputCommandInteraction): Promise<void> {
   const sub = interaction.options.getSubcommand();
@@ -14,7 +15,7 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
       const report = await generatePulse(hours);
       const embed = new EmbedBuilder()
         .setTitle("📡 Community Pulse")
-        .setColor(0x5865f2)
+        .setColor(THEME_COLORS.orange)
         .setDescription(report)
         .setTimestamp();
       await interaction.editReply({ embeds: [embed] });
@@ -26,7 +27,7 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
       const report = period === "week" ? await generateWeeklyReport() : await generateDailyReport();
       const embed = new EmbedBuilder()
         .setTitle(period === "week" ? "📅 Weekly Community Report" : "📊 Today's Community Report")
-        .setColor(0x5865f2)
+        .setColor(THEME_COLORS.orange)
         .setDescription(report)
         .setTimestamp();
       await interaction.editReply({ embeds: [embed] });

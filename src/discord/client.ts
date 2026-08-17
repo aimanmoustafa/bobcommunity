@@ -11,6 +11,7 @@ import {
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { handleMessage } from "./messageHandler";
+import { handleExitDmReply } from "./exitReplyHandler";
 import { handleMemberLeave } from "./memberEvents";
 import { handleSlashCommand } from "../commands/feedback";
 import { handleCommunityCommand } from "../commands/community";
@@ -23,6 +24,9 @@ export function createDiscordClient(): Client {
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.GuildMembers,
+      // Required to receive DM replies from departed members (exit-feedback
+      // reply tracking) -- without this, message content in DMs is invisible.
+      GatewayIntentBits.DirectMessages,
       // Thread and forum post messages ride on GuildMessages, but the bot
       // needs to be a member of the thread to receive events from it --
       // handled by the ThreadCreate auto-join listener below.
@@ -57,9 +61,15 @@ export function createDiscordClient(): Client {
 
   // Listen to every message -- covers regular channels, threads, and
   // forum post threads, since they all emit MessageCreate the same way.
+  // DMs (no guild) route separately, since a reply to the exit-feedback
+  // DM should be forwarded, not run through the community-feedback pipeline.
   client.on(Events.MessageCreate, async (message) => {
     try {
-      await handleMessage(message);
+      if (!message.guild) {
+        await handleExitDmReply(message);
+      } else {
+        await handleMessage(message);
+      }
     } catch (error) {
       logger.error("Error handling message", error);
     }
