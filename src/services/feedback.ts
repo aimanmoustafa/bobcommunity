@@ -53,7 +53,6 @@ export async function storeFeedback(input: FeedbackInput) {
         needsReply: input.analysis.needsReply,
         reason: input.analysis.reason,
         aiSummary: input.analysis.aiSummary,
-        suggestedReply: input.analysis.suggestedReply,
         confidence: input.analysis.confidence,
         slackNotified: !!input.slackTs,
         slackTs: input.slackTs,

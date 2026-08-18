@@ -142,10 +142,9 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
         feedback
           .slice(0, 10)
           .map(
-            (f: { category: string; aiSummary: string | null; content: string; urgency: string; sentiment: string; messageLink: string; suggestedReply: string | null }, i: number) =>
+            (f: { category: string; aiSummary: string | null; content: string; urgency: string; sentiment: string; messageLink: string }, i: number) =>
               `**${i + 1}.** [${formatCategory(f.category)}] ${f.aiSummary || f.content.slice(0, 100)}\n` +
-              `Urgency: ${f.urgency} | Sentiment: ${f.sentiment} | [Link](${f.messageLink})` +
-              (f.suggestedReply ? `\n💬 *Suggested reply:* ${f.suggestedReply.slice(0, 150)}${f.suggestedReply.length > 150 ? "..." : ""}` : "")
+              `Urgency: ${f.urgency} | Sentiment: ${f.sentiment} | [Link](${f.messageLink})`
           )
           .join("\n\n")
       )

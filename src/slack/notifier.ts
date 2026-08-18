@@ -83,10 +83,6 @@ function buildBlocks(
     },
     { type: "divider" },
     {
-      type: "section",
-      text: { type: "mrkdwn", text: `*Suggested Reply:*\n${analysis.suggestedReply}` },
-    },
-    {
       type: "actions",
       elements: [
         {

@@ -25,7 +25,6 @@ model Feedback {
   needsReply    String   @default("no")
   reason        String?
   aiSummary     String?
-  suggestedReply String?
   confidence    Float    @default(0)
   replyStatus   String   @default("pending")
   repliedBy     String?

@@ -24,13 +24,26 @@ function truncate(str: string, max: number): string {
  * to everyone else configured. Exported so other modules (exit-reply
  * forwarding) can reuse the exact same delivery logic.
  */
-export async function sendEmbedToConfiguredUsers(client: Client, embed: EmbedBuilder): Promise<void> {
+export async function sendEmbedToConfiguredUsers(
+  client: Client,
+  embed: EmbedBuilder,
+  options: { pingRecipient?: boolean; pingText?: string } = {}
+): Promise<void> {
   if (config.discord.dmUserIds.length === 0) return;
 
   for (const userId of config.discord.dmUserIds) {
     try {
       const user = await client.users.fetch(userId);
-      await user.send({ embeds: [embed] });
+      // A real ping/notification only fires from an @mention in plain message
+      // content -- text inside an embed never triggers Discord's notification,
+      // so callers that want the recipient actually pinged (not just quietly
+      // DMed) need this content + allowedMentions combination.
+      const payload: any = { embeds: [embed] };
+      if (options.pingRecipient) {
+        payload.content = `<@${userId}>${options.pingText ? ` ${options.pingText}` : ""}`;
+        payload.allowedMentions = { users: [userId] };
+      }
+      await user.send(payload);
     } catch (error: any) {
       logger.warn("Failed to DM configured user (closed DMs, invalid ID, or no shared server?)", {
         userId,
@@ -83,12 +96,49 @@ export async function sendAlertDm(
       `**Summary:** ${analysis.aiSummary}\n\n` +
         `**Reason:** ${analysis.reason}\n\n` +
         `**Message:** ${truncate(messageContent, 300)}\n\n` +
-        `**Suggested reply:** ${analysis.suggestedReply}\n\n` +
         `[Open in Discord](${messageLink})`
     )
     .setTimestamp();
 
   await sendEmbedToConfiguredUsers(client, embed);
+}
+
+/**
+ * Sends a moderation ping when the AI flags toxic/inappropriate content --
+ * this is DM-only by design (not Slack), same reasoning as the stale-item
+ * alert: a "someone might be being toxic" signal is something you review
+ * and act on personally, not something broadcast to the shared channel.
+ * Unlike sendAlertDm, this one actually pings you (real @mention in the
+ * message content), since a moderation flag is worth an immediate look
+ * rather than a quiet, easy-to-miss DM.
+ */
+export async function sendModerationAlertDm(
+  client: Client,
+  analysis: MessageAnalysis,
+  authorName: string,
+  channelName: string,
+  messageLink: string,
+  messageContent: string
+): Promise<void> {
+  const embed = new EmbedBuilder()
+    .setTitle("🚨 Moderation Alert")
+    .setColor(THEME_COLORS.darkOrange)
+    .addFields(
+      { name: "Channel", value: `#${channelName}`, inline: true },
+      { name: "Author", value: authorName, inline: true },
+      { name: "Sentiment", value: analysis.sentiment, inline: true }
+    )
+    .setDescription(
+      `**Summary:** ${analysis.aiSummary}\n\n` +
+        `**Message:** ${truncate(messageContent, 400)}\n\n` +
+        `[Open in Discord](${messageLink})`
+    )
+    .setTimestamp();
+
+  await sendEmbedToConfiguredUsers(client, embed, {
+    pingRecipient: true,
+    pingText: "⚠️ Possible toxic/inappropriate message detected",
+  });
 }
 
 /**

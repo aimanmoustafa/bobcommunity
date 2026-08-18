@@ -148,7 +148,6 @@ export async function createNotionEntry(input: NotionSyncInput): Promise<NotionS
         "Community Manager": { people: [{ id: DEFAULT_CM_PERSON_ID }] },
         "Date Reported": { date: dateProp(createdAt) },
         "Source URL": { url: messageLink },
-        "Initial Response": { rich_text: richText(analysis.suggestedReply || "") },
         Notes: { rich_text: richText(`Auto-logged by BoB Community Bot. Confidence: ${Math.round(analysis.confidence * 100)}%. Reason: ${analysis.reason}`) },
         "Impact Level": { select: { name: impactLevelFor(uniqueReporterCount) } },
         "Follow-up Required": { checkbox: analysis.needsReply === "yes" },

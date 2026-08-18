@@ -3,7 +3,7 @@ import { config } from "../config";
 import { prefilterMessage } from "../ai/prefilter";
 import { analyzeMessageWithStatus } from "../ai/analyzer";
 import { sendSlackAlert, updateSlackAlert } from "../slack/notifier";
-import { sendAlertDm } from "./dmNotifier";
+import { sendAlertDm, sendModerationAlertDm } from "./dmNotifier";
 import { storeFeedback } from "../services/feedback";
 import { registerReport, saveSlackTs, shouldBypassAggregation } from "../services/aggregation";
 import { isDuplicateFromAuthor } from "../services/dedupe";
@@ -115,6 +115,32 @@ export async function handleMessage(
 
   // --- Step 5: Build message link ---
   const messageLink = `https://discord.com/channels/${message.guild.id}/${message.channel.id}/${message.id}`;
+
+  // --- Step 5b: Moderation alert for toxicity -- fires independently of the
+  // urgency/needsReply gating below, since toxic content often doesn't
+  // naturally have "needsReply: yes" or high urgency but still deserves a
+  // heads-up. DM-only (not Slack), and deduplicated per channel over the
+  // aggregation window so a heated back-and-forth pings you once, not on
+  // every single message in the exchange.
+  if (analysis.category === "toxicity") {
+    const modAgg = await registerReport(
+      "moderation_dm",
+      message.channel.id,
+      message.author.id,
+      analysis.urgency,
+      analysis.aiSummary
+    );
+    if (modAgg.isNewGroup) {
+      await sendModerationAlertDm(
+        message.client,
+        analysis,
+        message.author.username,
+        channelName,
+        messageLink,
+        message.content
+      );
+    }
+  }
 
   // --- Step 6: Check if staff already replied ---
   if (analysis.needsReply === "yes") {

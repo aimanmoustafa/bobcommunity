@@ -17,7 +17,6 @@ export interface MessageAnalysis {
   reason: string;
   aiSummary: string;
   confidence: number;
-  suggestedReply: string;
 }
 
 /**
@@ -45,7 +44,6 @@ function emptyAnalysis(): MessageAnalysis {
     reason: "",
     aiSummary: "",
     confidence: 0,
-    suggestedReply: "",
   };
 }
 
@@ -109,14 +107,10 @@ const ANALYSIS_TOOL: Anthropic.Tool = {
         type: "number",
         description: "Confidence in this classification, between 0 and 1.",
       },
-      suggestedReply: {
-        type: "string",
-        description: "A warm, professional reply the CM can use or adapt. Empty string if not feedback.",
-      },
     },
     required: [
       "isFeedback", "category", "tags", "sentiment", "urgency",
-      "needsReply", "reason", "aiSummary", "confidence", "suggestedReply",
+      "needsReply", "reason", "aiSummary", "confidence",
     ],
   },
 };
