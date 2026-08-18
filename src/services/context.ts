@@ -1,5 +1,16 @@
-import { Message, TextChannel, ThreadChannel, AnyThreadChannel } from "discord.js";
+import { Message, GuildMember, TextChannel, ThreadChannel, AnyThreadChannel } from "discord.js";
 import { logger } from "../utils/logger";
+
+// Shared with the live response-time tracker in responseTracking.ts, so
+// "who counts as staff" is defined in exactly one place.
+export const STAFF_ROLE_KEYWORDS = ["moderator", "mod", "developer", "dev", "community manager", "cm", "admin", "staff"];
+
+export function isStaffMember(member: GuildMember | null | undefined): boolean {
+  if (!member) return false;
+  return member.roles.cache.some((role) =>
+    STAFF_ROLE_KEYWORDS.some((sr) => role.name.toLowerCase().includes(sr))
+  );
+}
 
 /**
  * Type guard: works for regular text channels, threads, and forum post
@@ -54,16 +65,7 @@ export async function checkStaffReplied(message: Message): Promise<boolean> {
       limit: 10,
     });
 
-    const staffRoles = ["moderator", "mod", "developer", "dev", "community manager", "cm", "admin", "staff"];
-
-    return after.some((m) => {
-      if (m.author.bot) return false;
-      const member = m.member;
-      if (!member) return false;
-      return member.roles.cache.some((role) =>
-        staffRoles.some((sr) => role.name.toLowerCase().includes(sr))
-      );
-    });
+    return after.some((m) => !m.author.bot && isStaffMember(m.member));
   } catch {
     return false;
   }

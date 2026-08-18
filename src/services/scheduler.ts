@@ -2,8 +2,9 @@ import { Client } from "discord.js";
 import { prisma } from "../database";
 import { generateDailyReport, generateWeeklyReport } from "./feedback";
 import { sendDailyReport, sendWeeklyReport } from "../slack/notifier";
-import { sendReportDm } from "../discord/dmNotifier";
+import { sendReportDm, sendStaleItemsDm } from "../discord/dmNotifier";
 import { resolveDigestChannel } from "./routing";
+import { findStaleItems, markStaleAlertSent } from "./responseTracking";
 import { logger } from "../utils/logger";
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000; // check every 15 minutes
@@ -27,6 +28,23 @@ async function runChecks(client: Client): Promise<void> {
 
   await maybeRunDaily(client, now);
   await maybeRunWeekly(client, now);
+  await checkStaleItems(client);
+}
+
+async function checkStaleItems(client: Client): Promise<void> {
+  try {
+    const stale = await findStaleItems();
+    if (stale.length === 0) return;
+
+    // DM only, by design -- response-time/staleness tracking is a personal
+    // accountability signal, not something broadcast to the shared Slack channel.
+    await sendStaleItemsDm(client, stale);
+    await markStaleAlertSent(stale.map((s) => s.id));
+
+    logger.info("Stale items alert sent (DM only)", { count: stale.length });
+  } catch (error) {
+    logger.error("Failed to check/send stale items alert", error);
+  }
 }
 
 async function maybeRunDaily(client: Client, now: Date): Promise<void> {

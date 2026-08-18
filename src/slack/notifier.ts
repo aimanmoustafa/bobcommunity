@@ -341,3 +341,45 @@ function formatCategory(category: string): string {
 function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max) + "..." : str;
 }
+
+interface StaleItemLike {
+  authorName: string;
+  aiSummary: string | null;
+  content: string;
+  messageLink: string;
+  category: string;
+  urgency: string;
+  ageHours: number;
+}
+
+export async function sendStaleItemsAlert(items: StaleItemLike[], targetChannel: string): Promise<void> {
+  const lines = items
+    .slice(0, 10)
+    .map(
+      (i) =>
+        `• *${i.authorName}* (${i.ageHours}h ago, ${formatCategory(i.category)}): ${truncate(i.aiSummary || i.content, 120)} -- <${i.messageLink}|Discord>`
+    )
+    .join("\n");
+
+  try {
+    await withRetry(
+      () =>
+        slack.chat.postMessage({
+          channel: targetChannel,
+          text: `⏰ ${items.length} message(s) still awaiting a reply`,
+          attachments: [
+            {
+              color: THEME_COLORS.darkOrange,
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: "⏰ Stale: Still Awaiting Reply" } },
+                { type: "section", text: { type: "mrkdwn", text: lines } },
+              ],
+            },
+          ],
+        }),
+      { label: "Slack stale items alert", retries: 2 }
+    );
+  } catch (error) {
+    logger.error("Failed to send stale items alert after retries", error);
+  }
+}

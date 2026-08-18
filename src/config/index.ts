@@ -59,6 +59,9 @@ export const config = {
     // Used only for display (e.g. /community peak) -- activity data is stored
     // in UTC internally either way. Default +2 matches Cairo standard time.
     timezoneOffsetHours: parseInt(process.env.TIMEZONE_OFFSET_HOURS || "2"),
+    // How many hours an unanswered "needs reply" item can sit before it
+    // triggers a one-time stale alert.
+    staleReplyHours: parseInt(process.env.STALE_REPLY_HOURS || "24"),
     exitMessage:
       process.env.MEMBER_EXIT_MESSAGE ||
       "Hey there! You were part of the Blitz of Battle community and we noticed you left. We'd really appreciate your feedback.\n\nWhat were you hoping to see but didn't find? What made you leave? What would you like to see improved?\n\nYour input helps us make the game and community better.",

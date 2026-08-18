@@ -29,6 +29,9 @@ model Feedback {
   confidence    Float    @default(0)
   replyStatus   String   @default("pending")
   repliedBy     String?
+  respondedAt   DateTime?
+  responseTimeMinutes Int?
+  staleAlertSent Boolean @default(false)
   slackNotified Boolean  @default(false)
   slackTs       String?
   issueId       String?

@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
-import { generatePulse, generateDailyReport, generateWeeklyReport } from "../services/feedback";
+import { generatePulse, generateDailyReport, generateWeeklyReport, generateTopicReport, generateTodoQueue } from "../services/feedback";
 import { backfillWatchedChannels, scanChannel } from "../services/backfill";
 import { assignIssue } from "../services/issues";
 import { generatePeakTimesReport } from "../services/activity";
@@ -17,6 +17,30 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
         .setTitle("📈 Peak Engagement Times")
         .setColor(THEME_COLORS.orange)
         .setDescription(report)
+        .setTimestamp();
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    if (sub === "topic") {
+      const topic = interaction.options.getString("search", true);
+      const days = interaction.options.getInteger("days") || 30;
+      const report = await generateTopicReport(topic, days);
+      const embed = new EmbedBuilder()
+        .setTitle(`🔍 Topic: ${topic}`)
+        .setColor(THEME_COLORS.orange)
+        .setDescription(report.slice(0, 4096))
+        .setTimestamp();
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    if (sub === "todo") {
+      const report = await generateTodoQueue();
+      const embed = new EmbedBuilder()
+        .setTitle("✅ Your Action Queue")
+        .setColor(THEME_COLORS.orange)
+        .setDescription(report.slice(0, 4096))
         .setTimestamp();
       await interaction.editReply({ embeds: [embed] });
       return;

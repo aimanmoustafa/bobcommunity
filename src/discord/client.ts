@@ -142,6 +142,20 @@ export async function registerCommands(clientId: string): Promise<void> {
       )
       .addSubcommand((sub) =>
         sub
+          .setName("topic")
+          .setDescription("Everything mentioning a specific hero, feature, or keyword")
+          .addStringOption((opt) =>
+            opt.setName("search").setDescription("Hero, feature, or keyword to search for").setRequired(true)
+          )
+          .addIntegerOption((opt) =>
+            opt.setName("days").setDescription("Lookback window in days (default 30)").setRequired(false)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub.setName("todo").setDescription("Your personal action queue: needs-reply items + flagged follow-ups")
+      )
+      .addSubcommand((sub) =>
+        sub
           .setName("report")
           .setDescription("Full digest report")
           .addStringOption((opt) =>

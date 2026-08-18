@@ -4,6 +4,7 @@ import { attachToIssue } from "./issues";
 import { recordCategoryMention, checkTrend } from "./trends";
 import { getAiHealthWarning } from "./aiHealth";
 import { generateExecutiveSummary } from "../ai/analyzer";
+import { getAverageResponseTimeMinutes, formatResponseTime } from "./responseTracking";
 import type { MessageAnalysis } from "../ai/analyzer";
 
 interface FeedbackInput {
@@ -447,6 +448,122 @@ export async function generateWeeklyReport(): Promise<string> {
   return report;
 }
 
+/**
+ * Pulls everything mentioning a specific hero, feature, or keyword across
+ * time (default 30 days) and synthesizes a topic-level view: total
+ * mentions, unique players, sentiment split, and representative quotes
+ * with links -- useful for balance/feature discussions where you want
+ * "everything about X" rather than a time-window digest.
+ */
+export async function generateTopicReport(topic: string, days: number = 30): Promise<string> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const rows = await prisma.feedback.findMany({
+    where: {
+      createdAt: { gte: since },
+      OR: [
+        { content: { contains: topic, mode: "insensitive" } },
+        { aiSummary: { contains: topic, mode: "insensitive" } },
+        { tags: { has: topic.toLowerCase() } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+
+  if (rows.length === 0) {
+    return `No mentions of "${topic}" found in the last ${days} days.`;
+  }
+
+  const uniqueAuthors = new Set(rows.map((r) => r.authorId)).size;
+  const sentimentCounts = new Map<string, number>();
+  for (const r of rows) sentimentCounts.set(r.sentiment, (sentimentCounts.get(r.sentiment) || 0) + 1);
+  const negCount = (sentimentCounts.get("negative") || 0) + (sentimentCounts.get("frustrated") || 0) + (sentimentCounts.get("angry") || 0);
+  const posCount = (sentimentCounts.get("positive") || 0) + (sentimentCounts.get("excited") || 0);
+
+  const relatedIssues = await prisma.issue.findMany({
+    where: {
+      OR: [
+        { title: { contains: topic, mode: "insensitive" } },
+        { latestSummary: { contains: topic, mode: "insensitive" } },
+      ],
+      status: { in: ["new", "investigating", "acknowledged", "in_progress"] },
+    },
+    orderBy: { mentionCount: "desc" },
+    take: 3,
+  });
+
+  let report = `*Topic: "${topic}"* (last ${days} days)\n\n`;
+  report += `*${rows.length}* mentions from *${uniqueAuthors}* unique player${uniqueAuthors === 1 ? "" : "s"}\n`;
+  report += `Sentiment: ${posCount} positive, ${negCount} negative, ${rows.length - posCount - negCount} neutral/other\n\n`;
+
+  if (relatedIssues.length > 0) {
+    report += `*Tracked issues:*\n`;
+    for (const issue of relatedIssues) {
+      report += `  - [${issue.priority.toUpperCase()}] ${issue.title.slice(0, 80)} (${issue.mentionCount} mentions, status: ${issue.status})\n`;
+    }
+    report += "\n";
+  }
+
+  report += `*Representative quotes:*\n`;
+  for (const r of rows.slice(0, 5)) {
+    report += `• ${truncateSummary(r.aiSummary || r.content, 150)} -- *${r.authorName}*, [Discord](${r.messageLink})\n`;
+  }
+
+  const snapshot = `Topic "${topic}": ${rows.length} mentions, ${uniqueAuthors} unique players. Sentiment: ${posCount} positive, ${negCount} negative. ${relatedIssues.length > 0 ? `Tracked issues: ${relatedIssues.map((i) => i.title).join("; ")}.` : ""}`;
+  const aiTake = await generateExecutiveSummary(snapshot);
+  if (aiTake) report += `\n🤖 *AI Take:*\n${aiTake}\n`;
+
+  return report;
+}
+
+/**
+ * A personal action-item queue: everything still needing a reply, plus
+ * any issue explicitly flagged for follow-up (via /community assign),
+ * sorted by urgency then age, so nothing sits split between Slack alerts
+ * and Discord without a single place to check "what do I still owe".
+ */
+export async function generateTodoQueue(): Promise<string> {
+  const pending = await prisma.feedback.findMany({
+    where: { needsReply: "yes", replyStatus: "pending" },
+    orderBy: [{ urgency: "desc" }, { createdAt: "asc" }],
+    take: 15,
+  });
+
+  const flaggedIssues = await prisma.issue.findMany({
+    where: { followUpFlagged: true, status: { in: ["new", "investigating", "acknowledged", "in_progress"] } },
+    orderBy: { lastReported: "desc" },
+    take: 10,
+  });
+
+  if (pending.length === 0 && flaggedIssues.length === 0) {
+    return "Nothing on your queue right now -- all caught up. 🎉";
+  }
+
+  const urgencyRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  const sortedPending = [...pending].sort((a, b) => (urgencyRank[a.urgency] ?? 3) - (urgencyRank[b.urgency] ?? 3));
+
+  let report = `*Your Action Queue*\n\n`;
+
+  if (sortedPending.length > 0) {
+    report += `🕑 *Needs a reply (${sortedPending.length})*\n`;
+    for (const item of sortedPending) {
+      const ageHours = Math.round((Date.now() - item.createdAt.getTime()) / (60 * 60 * 1000));
+      report += `• [${item.urgency.toUpperCase()}] ${truncateSummary(item.aiSummary || item.content, 120)} -- *${item.authorName}* (${ageHours}h ago), [Discord](${item.messageLink})\n`;
+    }
+    report += "\n";
+  }
+
+  if (flaggedIssues.length > 0) {
+    report += `🚩 *Flagged for follow-up (${flaggedIssues.length})*\n`;
+    for (const issue of flaggedIssues) {
+      report += `• [${issue.priority.toUpperCase()}] ${issue.title.slice(0, 80)}${issue.assignedTo ? ` -- assigned to ${issue.assignedTo}` : ""} (${issue.mentionCount} mentions)\n`;
+    }
+  }
+
+  return report;
+}
+
 export async function generatePulse(hours: number = 6): Promise<string> {
   const healthWarning = await getAiHealthWarning();
   const now = new Date();
@@ -486,6 +603,11 @@ export async function generatePulse(hours: number = 6): Promise<string> {
   }
 
   report += `\n*${stats.totalFeedback}* feedback items | *${urgentCount}* high/critical | *${stats.unansweredCount}* still need a reply\n`;
+
+  const avgResponseTime = await getAverageResponseTimeMinutes(7);
+  if (avgResponseTime !== null) {
+    report += `*Avg response time (7d):* ${formatResponseTime(avgResponseTime)}\n`;
+  }
 
   if (urgentCount === 0) {
     report += `\nNo major incidents detected.`;

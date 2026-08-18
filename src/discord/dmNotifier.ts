@@ -111,3 +111,28 @@ export async function sendExitReplyForward(
 
   await sendEmbedToConfiguredUsers(client, embed);
 }
+
+interface StaleItemLike {
+  authorName: string;
+  aiSummary: string | null;
+  content: string;
+  messageLink: string;
+  category: string;
+  urgency: string;
+  ageHours: number;
+}
+
+export async function sendStaleItemsDm(client: Client, items: StaleItemLike[]): Promise<void> {
+  const lines = items
+    .slice(0, 10)
+    .map((i) => `• **${i.authorName}** (${i.ageHours}h ago): ${truncate(i.aiSummary || i.content, 150)}\n[Open in Discord](${i.messageLink})`)
+    .join("\n\n");
+
+  const embed = new EmbedBuilder()
+    .setTitle("⏰ Stale: Still Awaiting Reply")
+    .setColor(THEME_COLORS.darkOrange)
+    .setDescription(lines.slice(0, 4096))
+    .setTimestamp();
+
+  await sendEmbedToConfiguredUsers(client, embed);
+}

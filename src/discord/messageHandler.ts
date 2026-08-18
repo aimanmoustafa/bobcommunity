@@ -10,6 +10,7 @@ import { isDuplicateFromAuthor } from "../services/dedupe";
 import { getConversationContext, checkStaffReplied, resolveChannelName } from "../services/context";
 import { resolveAlertChannel } from "../services/routing";
 import { recordActivity } from "../services/activity";
+import { checkForLiveStaffReply } from "../services/responseTracking";
 import { logger } from "../utils/logger";
 
 /**
@@ -70,6 +71,9 @@ export async function handleMessage(
   if (!options.forceWatch) {
     recordActivity(message).catch(() => {});
   }
+  // Safe to run during backfill too (idempotent status update, not a
+  // counter), so no forceWatch gate here.
+  checkForLiveStaffReply(message).catch(() => {});
 
   // --- Step 1: Lightweight pre-filter ---
   const prefilter = prefilterMessage(message.content);
