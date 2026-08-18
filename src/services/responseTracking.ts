@@ -6,20 +6,43 @@ import { isStaffMember } from "./context";
 
 /**
  * Called for every message in a watched channel. If the author is staff,
- * checks whether there are any still-pending "needs reply" feedback items
- * in the same channel posted before this message, and if so, marks them
- * answered with a real response-time measurement.
+ * tries two ways to find what they answered:
  *
- * This catches replies at ANY point after classification -- unlike
- * checkStaffReplied (used at classification time), which only looks a few
- * messages ahead. A staff member replying hours later, even with a short
- * message that itself gets filtered out as noise, still gets credited here.
+ * 1. PRECISE: if this message is a genuine Discord reply (the reply-arrow
+ *    feature, quoting a specific message) to a message that's a pending
+ *    feedback item, mark ONLY that exact item as replied.
+ * 2. FALLBACK: if it's not a precise reply (or the quoted message isn't a
+ *    pending item), fall back to the broader "staff said something in this
+ *    channel" heuristic, marking every still-pending item in that channel.
+ *
+ * The precise path is the accurate one; the fallback exists so a staff
+ * member who just types a normal answer (without using Discord's reply
+ * feature) still gets credited, at the cost of being less exact when
+ * multiple unrelated items are pending in the same channel at once.
  */
 export async function checkForLiveStaffReply(message: Message): Promise<void> {
   if (message.author.bot) return;
   if (!isStaffMember(message.member)) return;
 
   try {
+    const referencedMessageId = message.reference?.messageId;
+
+    if (referencedMessageId) {
+      const directMatch = await prisma.feedback.findFirst({
+        where: { messageId: referencedMessageId, needsReply: "yes", replyStatus: "pending" },
+        select: { id: true, createdAt: true },
+      });
+
+      if (directMatch) {
+        await markReplied([directMatch], message);
+        logger.debug("Marked feedback as replied via precise Discord reply-to match", {
+          referencedMessageId,
+          staffMember: message.author.username,
+        });
+        return; // precise match handled -- skip the broader fallback entirely
+      }
+    }
+
     const pending = await prisma.feedback.findMany({
       where: {
         channelId: message.channel.id,
@@ -32,26 +55,30 @@ export async function checkForLiveStaffReply(message: Message): Promise<void> {
 
     if (pending.length === 0) return;
 
-    for (const item of pending) {
-      const responseTimeMinutes = Math.round((message.createdAt.getTime() - item.createdAt.getTime()) / 60000);
-      await prisma.feedback.update({
-        where: { id: item.id },
-        data: {
-          replyStatus: "replied",
-          respondedAt: message.createdAt,
-          responseTimeMinutes,
-          repliedBy: message.author.username,
-        },
-      });
-    }
+    await markReplied(pending, message);
 
-    logger.debug("Marked feedback as replied via live staff detection", {
+    logger.debug("Marked feedback as replied via channel-wide fallback (no precise reply link)", {
       channelId: message.channel.id,
       count: pending.length,
       staffMember: message.author.username,
     });
   } catch (error) {
     logger.debug("Failed to check for live staff reply (non-fatal)", error);
+  }
+}
+
+async function markReplied(items: { id: string; createdAt: Date }[], message: Message): Promise<void> {
+  for (const item of items) {
+    const responseTimeMinutes = Math.round((message.createdAt.getTime() - item.createdAt.getTime()) / 60000);
+    await prisma.feedback.update({
+      where: { id: item.id },
+      data: {
+        replyStatus: "replied",
+        respondedAt: message.createdAt,
+        responseTimeMinutes,
+        repliedBy: message.author.username,
+      },
+    });
   }
 }
 
