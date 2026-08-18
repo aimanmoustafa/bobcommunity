@@ -172,3 +172,27 @@ model ActivityBucketAuthor {
 
   @@unique([dayOfWeek, hour, authorId])
 }
+
+// Per-CALENDAR-DATE (not day-of-week) hourly buckets, needed to answer
+// "what happened in just the last 24h/7d/30d" -- the tables above only
+// know "Tuesdays at 8pm in general", with no way to scope to a specific
+// recent window. Grows by ~24 rows/day, which stays trivial even over years.
+model DailyActivityBucket {
+  id           String   @id @default(cuid())
+  date         DateTime @db.Date // UTC calendar date
+  hour         Int // 0-23 (UTC)
+  messageCount Int      @default(0)
+
+  @@unique([date, hour])
+  @@index([date])
+}
+
+model DailyActivityBucketAuthor {
+  id       String   @id @default(cuid())
+  date     DateTime @db.Date
+  hour     Int
+  authorId String
+
+  @@unique([date, hour, authorId])
+  @@index([date])
+}

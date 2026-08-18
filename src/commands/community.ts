@@ -12,7 +12,8 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
 
   try {
     if (sub === "peak") {
-      const report = await generatePeakTimesReport();
+      const window = (interaction.options.getString("window") || "all") as "24h" | "7d" | "30d" | "all";
+      const report = await generatePeakTimesReport(window);
       const embed = new EmbedBuilder()
         .setTitle("📈 Peak Engagement Times")
         .setColor(THEME_COLORS.orange)

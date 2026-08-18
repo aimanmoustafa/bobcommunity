@@ -138,7 +138,21 @@ export async function registerCommands(clientId: string): Promise<void> {
           )
       )
       .addSubcommand((sub) =>
-        sub.setName("peak").setDescription("Find peak engagement times -- best time to run an event")
+        sub
+          .setName("peak")
+          .setDescription("Find peak engagement times -- best time to run an event")
+          .addStringOption((opt) =>
+            opt
+              .setName("window")
+              .setDescription("Time period to analyze (default: all-time)")
+              .setRequired(false)
+              .addChoices(
+                { name: "Last 24 hours", value: "24h" },
+                { name: "Last 7 days", value: "7d" },
+                { name: "Last 30 days", value: "30d" },
+                { name: "All-time", value: "all" }
+              )
+          )
       )
       .addSubcommand((sub) =>
         sub
