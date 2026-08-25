@@ -22,10 +22,6 @@ interface FeedbackInput {
 
 export async function storeFeedback(input: FeedbackInput) {
   try {
-    // Group into a living issue. Includes suggestion/feature_request/praise
-    // now too (not just bugs/complaints), so recurring requests and repeated
-    // praise cluster in the digest the same way bug reports do, instead of
-    // showing up as separate lines every time.
     const ISSUE_CATEGORIES = [
       "bug_report", "balance", "hero_feedback", "matchmaking", "monetization",
       "ui_ux", "performance", "complaint", "exploit", "localization",
@@ -60,7 +56,6 @@ export async function storeFeedback(input: FeedbackInput) {
       },
     });
 
-    // Track daily counts and check for trend spikes (fire-and-forget)
     recordCategoryMention(input.analysis.category)
       .then(() => checkTrend(input.analysis.category))
       .catch(() => {});
@@ -68,7 +63,6 @@ export async function storeFeedback(input: FeedbackInput) {
     logger.debug("Feedback stored", { id: feedback.id, category: feedback.category, issueId });
     return feedback;
   } catch (error: any) {
-    // Duplicate message -- skip
     if (error?.code === "P2002") {
       logger.debug("Duplicate message, skipping", { messageId: input.messageId });
       return null;
@@ -106,16 +100,10 @@ export async function getFeedback(filters: {
     if (filters.from) where.createdAt.gte = filters.from;
     if (filters.to) where.createdAt.lte = filters.to;
   } else if (filters.days) {
-    where.createdAt = {
-      gte: new Date(Date.now() - filters.days * 24 * 60 * 60 * 1000),
-    };
+    where.createdAt = { gte: new Date(Date.now() - filters.days * 24 * 60 * 60 * 1000) };
   }
 
-  return prisma.feedback.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  return prisma.feedback.findMany({ where, orderBy: { createdAt: "desc" }, take: 100 });
 }
 
 export async function getStats(days: number = 7) {
@@ -128,25 +116,12 @@ export async function getStatsRange(from: Date, to: Date) {
 
   const [total, byCategory, bySentiment, byUrgency, needingReply] = await Promise.all([
     prisma.feedback.count({ where: { createdAt: range } }),
-    prisma.feedback.groupBy({
-      by: ["category"],
-      _count: true,
-      where: { createdAt: range },
-      orderBy: { _count: { category: "desc" } },
-    }),
-    prisma.feedback.groupBy({
-      by: ["sentiment"],
-      _count: true,
-      where: { createdAt: range },
-    }),
-    prisma.feedback.groupBy({
-      by: ["urgency"],
-      _count: true,
-      where: { createdAt: range },
-    }),
-    prisma.feedback.count({
-      where: { createdAt: range, needsReply: "yes", replyStatus: "pending" },
-    }),
+    prisma.feedback.groupBy({ by: ["category"], _count: true, where: { createdAt: range }, orderBy: { _count: { category: "desc" } } }),
+    prisma.feedback.groupBy({ by: ["sentiment"], _count: true, where: { createdAt: range } }),
+    prisma.feedback.groupBy({ by: ["urgency"], _count: true, where: { createdAt: range } }),
+    // Broadened to include "maybe" -- see generateTodoQueue's comment for why
+    // "yes"-only undercounts real outstanding work.
+    prisma.feedback.count({ where: { createdAt: range, needsReply: { in: ["yes", "maybe"] }, replyStatus: "pending" } }),
   ]);
 
   return {
@@ -156,6 +131,96 @@ export async function getStatsRange(from: Date, to: Date) {
     byUrgency: byUrgency.map((r: { urgency: string; _count: number }) => ({ urgency: r.urgency, count: r._count })),
     unansweredCount: needingReply,
   };
+}
+
+function formatDelta(current: number, previous: number, label: string): string {
+  if (previous === 0) return current > 0 ? "(new)" : "";
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return `(flat ${label})`;
+  return pct > 0 ? `(+${pct}% ${label})` : `(${pct}% ${label})`;
+}
+
+function truncateSummary(text: string, max: number = 140): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  return clean.length > max ? clean.slice(0, max) + "..." : clean;
+}
+
+function formatDigestDate(d: Date): string {
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+/**
+ * A personal action-item queue: everything still needing attention, plus
+ * any issue explicitly flagged for follow-up via /community assign.
+ *
+ * IMPORTANT: includes needsReply "maybe" as well as "yes". Restricting to
+ * "yes" only was the actual root cause of the todo queue appearing empty
+ * ("nothing to do") even with real outstanding feedback sitting unaddressed
+ * -- the AI classifies plenty of genuine feedback (suggestions, balance
+ * takes, etc.) as "maybe" needing a reply, and those were previously
+ * invisible here even though nobody had addressed them. "Maybe" items are
+ * arguably the ones most worth a human glance, since the AI itself wasn't
+ * confident either way.
+ *
+ * Optional `window` scopes results to a specific recent period (matching
+ * the same 24h/7d/30d convention as /community peak), so you can check
+ * "what's still outstanding from the last week" specifically. Defaults to
+ * all-time (no date filter) if omitted.
+ */
+export async function generateTodoQueue(window?: "24h" | "7d" | "30d"): Promise<string> {
+  const hoursMap: Record<"24h" | "7d" | "30d", number> = { "24h": 24, "7d": 168, "30d": 720 };
+  const cutoff = window ? new Date(Date.now() - hoursMap[window] * 60 * 60 * 1000) : undefined;
+  const windowLabel = window ? { "24h": "last 24 hours", "7d": "last 7 days", "30d": "last 30 days" }[window] : "all time";
+
+  const pending = await prisma.feedback.findMany({
+    where: {
+      needsReply: { in: ["yes", "maybe"] },
+      replyStatus: "pending",
+      ...(cutoff ? { createdAt: { gte: cutoff } } : {}),
+    },
+    orderBy: [{ urgency: "desc" }, { createdAt: "asc" }],
+    take: 20,
+  });
+
+  const flaggedIssues = await prisma.issue.findMany({
+    where: {
+      followUpFlagged: true,
+      status: { in: ["new", "investigating", "acknowledged", "in_progress"] },
+      ...(cutoff ? { lastReported: { gte: cutoff } } : {}),
+    },
+    orderBy: { lastReported: "desc" },
+    take: 10,
+  });
+
+  if (pending.length === 0 && flaggedIssues.length === 0) {
+    return `Nothing outstanding in the ${windowLabel} -- all caught up. 🎉`;
+  }
+
+  const urgencyRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  const sortedPending = [...pending].sort((a, b) => (urgencyRank[a.urgency] ?? 3) - (urgencyRank[b.urgency] ?? 3));
+
+  let report = `*Your Action Queue* (${windowLabel})\n\n`;
+
+  if (sortedPending.length > 0) {
+    const yesCount = sortedPending.filter((p) => p.needsReply === "yes").length;
+    const maybeCount = sortedPending.length - yesCount;
+    report += `🕑 *Needs a reply (${sortedPending.length}${maybeCount > 0 ? ` -- ${yesCount} definite, ${maybeCount} possible` : ""})*\n`;
+    for (const item of sortedPending) {
+      const ageHours = Math.round((Date.now() - item.createdAt.getTime()) / (60 * 60 * 1000));
+      const flag = item.needsReply === "maybe" ? " (maybe)" : "";
+      report += `• [${item.urgency.toUpperCase()}]${flag} ${truncateSummary(item.aiSummary || item.content, 120)} -- *${item.authorName}* (${ageHours}h ago), [Discord](${item.messageLink})\n`;
+    }
+    report += "\n";
+  }
+
+  if (flaggedIssues.length > 0) {
+    report += `🚩 *Flagged for follow-up (${flaggedIssues.length})*\n`;
+    for (const issue of flaggedIssues) {
+      report += `• [${issue.priority.toUpperCase()}] ${issue.title.slice(0, 80)}${issue.assignedTo ? ` -- assigned to ${issue.assignedTo}` : ""} (${issue.mentionCount} mentions)\n`;
+    }
+  }
+
+  return report;
 }
 
 export async function generateDailyReport(): Promise<string> {
@@ -168,17 +233,8 @@ export async function generateDailyReport(): Promise<string> {
   const todayRows = await prisma.feedback.findMany({
     where: { createdAt: { gte: startOfDay } },
     select: {
-      messageId: true,
-      category: true,
-      aiSummary: true,
-      content: true,
-      authorId: true,
-      authorName: true,
-      messageLink: true,
-      urgency: true,
-      needsReply: true,
-      issueId: true,
-      createdAt: true,
+      messageId: true, category: true, aiSummary: true, content: true, authorId: true,
+      authorName: true, messageLink: true, urgency: true, needsReply: true, issueId: true, createdAt: true,
     },
     orderBy: { createdAt: "asc" },
   });
@@ -190,10 +246,10 @@ export async function generateDailyReport(): Promise<string> {
   const payment = todayRows.filter((r) => r.category === "monetization");
   const praise = todayRows.filter((r) => r.category === "praise");
   const needsAttention = todayRows.filter((r) => r.urgency === "high" || r.urgency === "critical");
-  const needsReplySection = todayRows.filter((r) => r.needsReply === "yes");
+  // Broadened to include "maybe" -- same fix as generateTodoQueue, for the
+  // same reason: "yes"-only was hiding real outstanding feedback.
+  const needsReplySection = todayRows.filter((r) => r.needsReply === "yes" || r.needsReply === "maybe");
 
-  // --- Clustering: group today's rows sharing the same tracked Issue, so
-  // 5 reports of the same bug/suggestion show as one line, not 5. ---
   function clusterRows(rows: Row[]): Row[][] {
     const groups = new Map<string, Row[]>();
     for (const r of rows) {
@@ -205,8 +261,6 @@ export async function generateDailyReport(): Promise<string> {
     return [...groups.values()].sort((a, b) => b.length - a.length);
   }
 
-  // Assignment/follow-up info for any issues touched today, so the digest
-  // can show "assigned to X" / "follow-up flagged" the way a human triager would.
   const touchedIssueIds = [...new Set(todayRows.map((r) => r.issueId).filter((id): id is string => !!id))];
   const issueMetaMap = new Map<string, { assignedTo: string | null; followUpFlagged: boolean }>();
   if (touchedIssueIds.length > 0) {
@@ -232,12 +286,9 @@ export async function generateDailyReport(): Promise<string> {
     const meta = latest.issueId ? issueMetaMap.get(latest.issueId) : undefined;
     if (meta?.assignedTo) line += ` — assigned to ${meta.assignedTo}`;
     if (meta?.followUpFlagged) line += ` 🚩 follow-up flagged`;
-
     return line;
   }
 
-  // Renders a section: clusters, caps at `limit` (sorted by cluster size),
-  // and appends a "+N more" pointer if truncated.
   function renderSection(rows: Row[], limit: number = 5): string {
     if (rows.length === 0) return "";
     const clusters = clusterRows(rows);
@@ -248,9 +299,7 @@ export async function generateDailyReport(): Promise<string> {
   }
 
   async function yesterdayCountFor(categories: string[]): Promise<number> {
-    const rows = await prisma.dailyCategoryCount.findMany({
-      where: { date: yesterdayStart, category: { in: categories } },
-    });
+    const rows = await prisma.dailyCategoryCount.findMany({ where: { date: yesterdayStart, category: { in: categories } } });
     return rows.reduce((sum, r) => sum + r.count, 0);
   }
 
@@ -305,14 +354,10 @@ export async function generateDailyReport(): Promise<string> {
 
   if (!healthWarning) {
     const stats = await getStats(1);
-    const sentimentMap = Object.fromEntries(
-      stats.bySentiment.map((s: { sentiment: string; count: number }) => [s.sentiment, s.count])
-    );
+    const sentimentMap = Object.fromEntries(stats.bySentiment.map((s: { sentiment: string; count: number }) => [s.sentiment, s.count]));
     const total = stats.totalFeedback || 1;
     const posPercent = Math.round(((sentimentMap["positive"] || 0) / total) * 100);
-    const negPercent = Math.round(
-      (((sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0)) / total) * 100
-    );
+    const negPercent = Math.round((((sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0)) / total) * 100);
 
     const snapshot =
       `Total feedback today: ${todayRows.length}. Feature requests/suggestions: ${feedbackFeature.length}. ` +
@@ -325,69 +370,41 @@ export async function generateDailyReport(): Promise<string> {
   return report;
 }
 
-function truncateSummary(text: string, max: number = 140): string {
-  const clean = text.replace(/\s+/g, " ").trim();
-  return clean.length > max ? clean.slice(0, max) + "..." : clean;
-}
-
-function formatDigestDate(d: Date): string {
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
-
 export async function generateWeeklyReport(): Promise<string> {
   const healthWarning = await getAiHealthWarning();
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const [stats, prevStats] = await Promise.all([
-    getStatsRange(weekAgo, now),
-    getStatsRange(twoWeeksAgo, weekAgo),
-  ]);
+  const [stats, prevStats] = await Promise.all([getStatsRange(weekAgo, now), getStatsRange(twoWeeksAgo, weekAgo)]);
   const topCategories = stats.byCategory.slice(0, 5);
 
   const sentimentMap = Object.fromEntries(stats.bySentiment.map((s: { sentiment: string; count: number }) => [s.sentiment, s.count]));
   const total = stats.totalFeedback || 1;
-  const negTotal =
-    (sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0);
+  const negTotal = (sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0);
   const posPercent = Math.round(((sentimentMap["positive"] || 0) / total) * 100);
   const negPercent = Math.round((negTotal / total) * 100);
 
-  // Week-over-week helpers
   const prevCategoryMap = Object.fromEntries(prevStats.byCategory.map((c: { category: string; count: number }) => [c.category, c.count]));
   const wow = (current: number, prev: number): string => formatDelta(current, prev, "WoW");
 
-  // Most requested feature: top tag among feature_request category
   const featureRequests = await prisma.feedback.findMany({
-    where: {
-      category: "feature_request",
-      createdAt: { gte: weekAgo },
-    },
+    where: { category: "feature_request", createdAt: { gte: weekAgo } },
     select: { tags: true },
   });
   const tagCounts = new Map<string, number>();
-  for (const fr of featureRequests) {
-    for (const tag of fr.tags) {
-      tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-    }
-  }
+  for (const fr of featureRequests) for (const tag of fr.tags) tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
   const topFeature = [...tagCounts.entries()].sort((a, b) => b[1] - a[1])[0];
 
-  // Praise highlights: top tags among praise this week
   const praiseItems = await prisma.feedback.findMany({
     where: { category: "praise", createdAt: { gte: weekAgo } },
     select: { tags: true, aiSummary: true },
     orderBy: { createdAt: "desc" },
   });
   const praiseTagCounts = new Map<string, number>();
-  for (const p of praiseItems) {
-    for (const tag of p.tags) {
-      praiseTagCounts.set(tag, (praiseTagCounts.get(tag) || 0) + 1);
-    }
-  }
+  for (const p of praiseItems) for (const tag of p.tags) praiseTagCounts.set(tag, (praiseTagCounts.get(tag) || 0) + 1);
   const topPraiseTags = [...praiseTagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // Open issues from the issue tracker
   const openIssues = await prisma.issue.findMany({
     where: { status: { in: ["new", "investigating", "acknowledged", "in_progress"] } },
     orderBy: [{ mentionCount: "desc" }],
@@ -412,34 +429,25 @@ export async function generateWeeklyReport(): Promise<string> {
     }
   }
 
-  if (topFeature) {
-    report += `\n*Most Requested Feature:* ${topFeature[0]} (${topFeature[1]} mentions)\n`;
-  }
+  if (topFeature) report += `\n*Most Requested Feature:* ${topFeature[0]} (${topFeature[1]} mentions)\n`;
 
   if (praiseItems.length > 0) {
     report += `\n❤️ *Community Praise:* ${praiseItems.length} positive mentions ${wow(praiseItems.length, prevCategoryMap["praise"] || 0)}\n`;
-    if (topPraiseTags.length > 0) {
-      report += `  Players love: ${topPraiseTags.map(([tag, count]) => `${tag} (${count})`).join(", ")}\n`;
-    }
+    if (topPraiseTags.length > 0) report += `  Players love: ${topPraiseTags.map(([tag, count]) => `${tag} (${count})`).join(", ")}\n`;
   }
 
   report += `\n*Sentiment:* ${posPercent}% Positive | ${negPercent}% Negative\n`;
 
   const criticalCount = stats.byUrgency.find((u: { urgency: string; count: number }) => u.urgency === "critical")?.count || 0;
-  if (criticalCount > 0) {
-    report += `\n⚠️ *${criticalCount}* critical issues this week -- worth a dev sync.\n`;
-  }
+  if (criticalCount > 0) report += `\n⚠️ *${criticalCount}* critical issues this week -- worth a dev sync.\n`;
 
   if (!healthWarning) {
-    const topIssuesText = openIssues
-      .map((i: { priority: string; title: string; mentionCount: number }) => `${i.title} (${i.priority}, ${i.mentionCount} mentions)`)
-      .join("; ") || "none";
+    const topIssuesText = openIssues.map((i: { priority: string; title: string; mentionCount: number }) => `${i.title} (${i.priority}, ${i.mentionCount} mentions)`).join("; ") || "none";
     const snapshot =
       `Total feedback: ${stats.totalFeedback} (${wow(stats.totalFeedback, prevStats.totalFeedback)} vs last week). ` +
       `Unanswered: ${stats.unansweredCount}. Critical issues: ${criticalCount}. ` +
       `Top categories: ${topCategories.map((c: { category: string; count: number }) => `${c.category} (${c.count})`).join(", ") || "none"}. ` +
-      `Open tracked issues: ${topIssuesText}. ` +
-      `Sentiment: ${posPercent}% positive, ${negPercent}% negative.`;
+      `Open tracked issues: ${topIssuesText}. Sentiment: ${posPercent}% positive, ${negPercent}% negative.`;
     const aiTake = await generateExecutiveSummary(snapshot);
     if (aiTake) report += `\n🤖 *AI Take:*\n${aiTake}\n`;
   }
@@ -447,16 +455,8 @@ export async function generateWeeklyReport(): Promise<string> {
   return report;
 }
 
-/**
- * Pulls everything mentioning a specific hero, feature, or keyword across
- * time (default 30 days) and synthesizes a topic-level view: total
- * mentions, unique players, sentiment split, and representative quotes
- * with links -- useful for balance/feature discussions where you want
- * "everything about X" rather than a time-window digest.
- */
 export async function generateTopicReport(topic: string, days: number = 30): Promise<string> {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
   const rows = await prisma.feedback.findMany({
     where: {
       createdAt: { gte: since },
@@ -470,9 +470,7 @@ export async function generateTopicReport(topic: string, days: number = 30): Pro
     take: 100,
   });
 
-  if (rows.length === 0) {
-    return `No mentions of "${topic}" found in the last ${days} days.`;
-  }
+  if (rows.length === 0) return `No mentions of "${topic}" found in the last ${days} days.`;
 
   const uniqueAuthors = new Set(rows.map((r) => r.authorId)).size;
   const sentimentCounts = new Map<string, number>();
@@ -482,10 +480,7 @@ export async function generateTopicReport(topic: string, days: number = 30): Pro
 
   const relatedIssues = await prisma.issue.findMany({
     where: {
-      OR: [
-        { title: { contains: topic, mode: "insensitive" } },
-        { latestSummary: { contains: topic, mode: "insensitive" } },
-      ],
+      OR: [{ title: { contains: topic, mode: "insensitive" } }, { latestSummary: { contains: topic, mode: "insensitive" } }],
       status: { in: ["new", "investigating", "acknowledged", "in_progress"] },
     },
     orderBy: { mentionCount: "desc" },
@@ -498,67 +493,16 @@ export async function generateTopicReport(topic: string, days: number = 30): Pro
 
   if (relatedIssues.length > 0) {
     report += `*Tracked issues:*\n`;
-    for (const issue of relatedIssues) {
-      report += `  - [${issue.priority.toUpperCase()}] ${issue.title.slice(0, 80)} (${issue.mentionCount} mentions, status: ${issue.status})\n`;
-    }
+    for (const issue of relatedIssues) report += `  - [${issue.priority.toUpperCase()}] ${issue.title.slice(0, 80)} (${issue.mentionCount} mentions, status: ${issue.status})\n`;
     report += "\n";
   }
 
   report += `*Representative quotes:*\n`;
-  for (const r of rows.slice(0, 5)) {
-    report += `• ${truncateSummary(r.aiSummary || r.content, 150)} -- *${r.authorName}*, [Discord](${r.messageLink})\n`;
-  }
+  for (const r of rows.slice(0, 5)) report += `• ${truncateSummary(r.aiSummary || r.content, 150)} -- *${r.authorName}*, [Discord](${r.messageLink})\n`;
 
   const snapshot = `Topic "${topic}": ${rows.length} mentions, ${uniqueAuthors} unique players. Sentiment: ${posCount} positive, ${negCount} negative. ${relatedIssues.length > 0 ? `Tracked issues: ${relatedIssues.map((i) => i.title).join("; ")}.` : ""}`;
   const aiTake = await generateExecutiveSummary(snapshot);
   if (aiTake) report += `\n🤖 *AI Take:*\n${aiTake}\n`;
-
-  return report;
-}
-
-/**
- * A personal action-item queue: everything still needing a reply, plus
- * any issue explicitly flagged for follow-up (via /community assign),
- * sorted by urgency then age, so nothing sits split between Slack alerts
- * and Discord without a single place to check "what do I still owe".
- */
-export async function generateTodoQueue(): Promise<string> {
-  const pending = await prisma.feedback.findMany({
-    where: { needsReply: "yes", replyStatus: "pending" },
-    orderBy: [{ urgency: "desc" }, { createdAt: "asc" }],
-    take: 15,
-  });
-
-  const flaggedIssues = await prisma.issue.findMany({
-    where: { followUpFlagged: true, status: { in: ["new", "investigating", "acknowledged", "in_progress"] } },
-    orderBy: { lastReported: "desc" },
-    take: 10,
-  });
-
-  if (pending.length === 0 && flaggedIssues.length === 0) {
-    return "Nothing on your queue right now -- all caught up. 🎉";
-  }
-
-  const urgencyRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-  const sortedPending = [...pending].sort((a, b) => (urgencyRank[a.urgency] ?? 3) - (urgencyRank[b.urgency] ?? 3));
-
-  let report = `*Your Action Queue*\n\n`;
-
-  if (sortedPending.length > 0) {
-    report += `🕑 *Needs a reply (${sortedPending.length})*\n`;
-    for (const item of sortedPending) {
-      const ageHours = Math.round((Date.now() - item.createdAt.getTime()) / (60 * 60 * 1000));
-      report += `• [${item.urgency.toUpperCase()}] ${truncateSummary(item.aiSummary || item.content, 120)} -- *${item.authorName}* (${ageHours}h ago), [Discord](${item.messageLink})\n`;
-    }
-    report += "\n";
-  }
-
-  if (flaggedIssues.length > 0) {
-    report += `🚩 *Flagged for follow-up (${flaggedIssues.length})*\n`;
-    for (const issue of flaggedIssues) {
-      report += `• [${issue.priority.toUpperCase()}] ${issue.title.slice(0, 80)}${issue.assignedTo ? ` -- assigned to ${issue.assignedTo}` : ""} (${issue.mentionCount} mentions)\n`;
-    }
-  }
 
   return report;
 }
@@ -573,8 +517,7 @@ export async function generatePulse(hours: number = 6): Promise<string> {
   const total = stats.totalFeedback || 1;
   const negTotal = (sentimentMap["negative"] || 0) + (sentimentMap["frustrated"] || 0) + (sentimentMap["angry"] || 0);
   const posTotal = sentimentMap["positive"] || 0;
-  const overallSentiment =
-    negTotal > posTotal * 1.5 ? "Negative" : posTotal > negTotal * 1.5 ? "Positive" : "Mixed/Neutral";
+  const overallSentiment = negTotal > posTotal * 1.5 ? "Negative" : posTotal > negTotal * 1.5 ? "Positive" : "Mixed/Neutral";
 
   const topCategory = stats.byCategory[0];
   const urgentCount =
@@ -582,10 +525,7 @@ export async function generatePulse(hours: number = 6): Promise<string> {
     (stats.byUrgency.find((u: { urgency: string; count: number }) => u.urgency === "critical")?.count || 0);
 
   const openIssues = await prisma.issue.findMany({
-    where: {
-      status: { in: ["new", "investigating", "acknowledged", "in_progress"] },
-      lastReported: { gte: from },
-    },
+    where: { status: { in: ["new", "investigating", "acknowledged", "in_progress"] }, lastReported: { gte: from } },
     orderBy: { mentionCount: "desc" },
     take: 1,
   });
@@ -594,23 +534,15 @@ export async function generatePulse(hours: number = 6): Promise<string> {
   report += `*Community Pulse — Last ${hours} Hours*\n\n`;
   report += `*Overall sentiment:* ${overallSentiment}\n\n`;
 
-  if (topCategory) {
-    report += `*Main discussion:* ${formatCategory(topCategory.category)} (${topCategory.count} mentions)\n`;
-  }
-  if (openIssues.length > 0) {
-    report += `*Emerging issue:* ${openIssues[0].title.slice(0, 80)} (${openIssues[0].mentionCount} mentions, ${openIssues[0].uniqueUserIds.length} players)\n`;
-  }
+  if (topCategory) report += `*Main discussion:* ${formatCategory(topCategory.category)} (${topCategory.count} mentions)\n`;
+  if (openIssues.length > 0) report += `*Emerging issue:* ${openIssues[0].title.slice(0, 80)} (${openIssues[0].mentionCount} mentions, ${openIssues[0].uniqueUserIds.length} players)\n`;
 
   report += `\n*${stats.totalFeedback}* feedback items | *${urgentCount}* high/critical | *${stats.unansweredCount}* still need a reply\n`;
 
   const avgResponseTime = await getAverageResponseTimeMinutes(7);
-  if (avgResponseTime !== null) {
-    report += `*Avg response time (7d):* ${formatResponseTime(avgResponseTime)}\n`;
-  }
+  if (avgResponseTime !== null) report += `*Avg response time (7d):* ${formatResponseTime(avgResponseTime)}\n`;
 
-  if (urgentCount === 0) {
-    report += `\nNo major incidents detected.`;
-  }
+  if (urgentCount === 0) report += `\nNo major incidents detected.`;
 
   if (!healthWarning) {
     const snapshot =
@@ -625,21 +557,6 @@ export async function generatePulse(hours: number = 6): Promise<string> {
   return report;
 }
 
-/**
- * Shared trend-delta formatter used by both the daily digest ("vs yesterday")
- * and the weekly report ("WoW"), so the two never drift into inconsistent
- * wording or rounding behavior.
- */
-function formatDelta(current: number, previous: number, label: string): string {
-  if (previous === 0) return current > 0 ? "(new)" : "";
-  const pct = Math.round(((current - previous) / previous) * 100);
-  if (pct === 0) return `(flat ${label})`;
-  return pct > 0 ? `(+${pct}% ${label})` : `(${pct}% ${label})`;
-}
-
 function formatCategory(category: string): string {
-  return category
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  return category.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }

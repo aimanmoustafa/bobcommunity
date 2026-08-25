@@ -1,6 +1,5 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -9,67 +8,60 @@ datasource db {
 }
 
 model Feedback {
-  id            String   @id @default(cuid())
-  messageId     String   @unique
-  authorId      String
-  authorName    String
-  channelId     String
-  channelName   String
-  guildId       String
-  content       String
-  messageLink   String
-  category      String
-  tags          String[] @default([])
-  sentiment     String   @default("neutral")
-  urgency       String   @default("low")
-  needsReply    String   @default("no")
-  reason        String?
-  aiSummary     String?
-  confidence    Float    @default(0)
-  replyStatus   String   @default("pending")
-  repliedBy     String?
-  respondedAt   DateTime?
+  id                  String    @id @default(cuid())
+  messageId           String    @unique
+  authorId            String
+  authorName          String
+  channelId           String
+  channelName         String
+  guildId             String
+  content             String
+  messageLink         String
+  category            String
+  tags                String[]  @default([])
+  sentiment           String
+  urgency             String    @default("low")
+  needsReply          String    @default("no")
+  reason              String?
+  aiSummary           String?
+  confidence          Float     @default(0)
+  replyStatus         String    @default("pending")
+  repliedBy           String?
+  respondedAt         DateTime?
   responseTimeMinutes Int?
-  staleAlertSent Boolean @default(false)
-  slackNotified Boolean  @default(false)
-  slackTs       String?
-  issueId       String?
-  issue         Issue?   @relation(fields: [issueId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  staleAlertSent      Boolean   @default(false)
+  slackNotified       Boolean   @default(false)
+  slackTs             String?
+  issueId             String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  @@index([category])
-  @@index([urgency])
-  @@index([needsReply])
-  @@index([createdAt])
   @@index([channelId])
-  @@index([issueId])
+  @@index([category])
+  @@index([createdAt])
 }
 
 model Issue {
-  id                String     @id @default(cuid())
-  title             String
-  category          String
-  priority          String     @default("medium")
-  status            String     @default("new") // new | investigating | acknowledged | in_progress | resolved | ignored
-  mentionCount      Int        @default(1)
-  uniqueUserIds     String[]   @default([])
-  sentiment         String     @default("negative")
-  latestSummary     String?
-  recommendedAction String?
-  assignedTo        String?
-  followUpFlagged   Boolean    @default(false)
-  // Notion sync: which page(s) this issue is mirrored to, so repeat reports
-  // update the existing page instead of creating a duplicate every time.
-  notionCmPageId    String?
-  notionCmPageUrl   String?
-  notionBugPageId   String?
+  id                  String    @id @default(cuid())
+  title               String
+  category            String
+  priority            String    @default("medium")
+  status              String    @default("new") // new | investigating | acknowledged | in_progress | resolved | ignored
+  mentionCount        Int       @default(1)
+  uniqueUserIds       String[]  @default([])
+  sentiment           String    @default("negative")
+  latestSummary       String?
+  recommendedAction   String?
+  assignedTo          String?
+  followUpFlagged     Boolean   @default(false)
+  notionCmPageId      String?
+  notionCmPageUrl     String?
+  notionBugPageId     String?
   notionFeaturePageId String?
-  firstReported     DateTime   @default(now())
-  lastReported      DateTime   @default(now())
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  feedback          Feedback[]
+  firstReported       DateTime  @default(now())
+  lastReported        DateTime  @default(now())
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@index([status])
   @@index([category])
@@ -78,21 +70,24 @@ model Issue {
 
 model DailyCategoryCount {
   id       String   @id @default(cuid())
-  date     DateTime @db.Date
+  date     DateTime
   category String
   count    Int      @default(0)
 
   @@unique([date, category])
-  @@index([category, date])
 }
 
+// Singleton row (id is always "singleton") tracking scheduled task run times,
+// so a restart near the trigger window never causes a skipped or duplicated report.
 model SchedulerState {
-  id        String    @id @default(cuid())
-  taskName  String    @unique
-  lastRunAt DateTime?
-  updatedAt DateTime  @updatedAt
+  id         String    @id @default(cuid())
+  taskName   String    @unique
+  lastRunAt  DateTime?
+  updatedAt  DateTime  @updatedAt
 }
 
+// Tracks in-progress alert aggregation groups so repeat reports of the same
+// issue update one Slack message in place instead of spamming new alerts.
 model AggregationGroup {
   id            String   @id @default(cuid())
   key           String   @unique
@@ -107,17 +102,16 @@ model AggregationGroup {
   expiresAt     DateTime
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  @@index([key])
-  @@index([expiresAt])
 }
 
+// Per-channel checkpoint for incremental backfill/refresh, so repeated runs
+// only process genuinely new messages.
 model ChannelCheckpoint {
-  id              String   @id @default(cuid())
-  channelId       String   @unique
-  lastMessageId   String?
-  lastProcessedAt DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(cuid())
+  channelId        String   @unique
+  lastMessageId    String?
+  lastProcessedAt  DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // Singleton row (id is always "singleton") tracking whether the AI layer is
@@ -145,12 +139,8 @@ model ExitDmRecipient {
   repliedAt DateTime?
 }
 
-// Activity heatmap for finding peak engagement times (e.g. best time to run
-// an event). Tracks EVERY message in watched channels -- including casual
-// chat that never becomes "feedback" -- since raw activity volume is exactly
-// the signal needed here, unlike the Feedback table which is a filtered
-// subset. Bucketed by (dayOfWeek, hour) in UTC; capped at 168 rows total
-// since it's a fixed weekly grid that just accumulates counts over time.
+// Activity heatmap (all-time recurring pattern): "Tuesdays at 8pm in
+// general" -- accumulates forever, bounded at 168 rows (7 days x 24 hours).
 model ActivityBucket {
   id           String @id @default(cuid())
   dayOfWeek    Int // 0=Sunday .. 6=Saturday (UTC)
@@ -160,10 +150,6 @@ model ActivityBucket {
   @@unique([dayOfWeek, hour])
 }
 
-// One row per (time slot, author) ever seen -- lets us count unique active
-// participants per slot, not just raw message volume, without needing to
-// store unbounded per-message history. Bounded by (168 slots) x (distinct
-// active members), which stays reasonable even for a large community.
 model ActivityBucketAuthor {
   id        String @id @default(cuid())
   dayOfWeek Int
@@ -173,14 +159,13 @@ model ActivityBucketAuthor {
   @@unique([dayOfWeek, hour, authorId])
 }
 
-// Per-CALENDAR-DATE (not day-of-week) hourly buckets, needed to answer
-// "what happened in just the last 24h/7d/30d" -- the tables above only
-// know "Tuesdays at 8pm in general", with no way to scope to a specific
-// recent window. Grows by ~24 rows/day, which stays trivial even over years.
+// Per-CALENDAR-DATE hourly buckets, needed to answer "what happened in just
+// the last 24h/7d/30d" -- the tables above only know "Tuesdays in general",
+// with no way to scope to a specific recent window.
 model DailyActivityBucket {
   id           String   @id @default(cuid())
-  date         DateTime @db.Date // UTC calendar date
-  hour         Int // 0-23 (UTC)
+  date         DateTime @db.Date
+  hour         Int
   messageCount Int      @default(0)
 
   @@unique([date, hour])

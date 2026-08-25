@@ -13,132 +13,71 @@ import { recordActivity } from "../services/activity";
 import { checkForLiveStaffReply } from "../services/responseTracking";
 import { logger } from "../utils/logger";
 
-/**
- * Outcome of processing a single message. Distinguishes every reason a
- * message might not turn into stored feedback, so callers that need to
- * report accurately (backfill/refresh) never have to guess why a batch
- * came back with "0 feedback" -- was it genuinely quiet, or is the AI
- * layer broken?
- */
 export type MessageOutcome =
   | { status: "not_watched" }
   | { status: "filtered_out" }
   | { status: "duplicate" }
   | { status: "ai_disabled" }
-  | { status: "ai_error"; message: string }
+  | { status: "ai_error" }
   | { status: "not_feedback" }
   | { status: "stored"; alerted: boolean };
 
-/**
- * Checks whether this message's channel (or its parent, for threads/forum
- * posts) is in the watch list. If the watch list is empty, every channel
- * is watched.
- */
 function isWatchedChannel(message: Message): boolean {
-  if (config.discord.watchedChannelIds.length === 0) return true;
+  const watched = config.discord.watchedChannelIds;
+  if (watched.length === 0) return true;
 
   const channel = message.channel as any;
-  const channelId = channel.id;
-  const parentId = channel.isThread?.() ? channel.parentId : undefined;
-
-  return (
-    config.discord.watchedChannelIds.includes(channelId) ||
-    (!!parentId && config.discord.watchedChannelIds.includes(parentId))
-  );
+  if (watched.includes(channel.id)) return true;
+  if (channel.isThread?.() && channel.parentId && watched.includes(channel.parentId)) return true;
+  return false;
 }
 
 export async function handleMessage(
   message: Message,
   options: { forceWatch?: boolean } = {}
 ): Promise<MessageOutcome> {
-  // Skip bots and DMs
   if (message.author.bot) return { status: "not_watched" };
   if (!message.guild) return { status: "not_watched" };
   if (!message.content || message.content.trim().length === 0) return { status: "not_watched" };
-  // The watched-channel restriction only applies to the passive live listener
-  // (bounding automatic monitoring to configured channels). Manual commands
-  // (backfill/refresh/scan) explicitly represent a requested action on a
-  // specific channel, so they pass forceWatch to bypass this gate.
   if (!options.forceWatch && !isWatchedChannel(message)) return { status: "not_watched" };
 
-  // Activity tracking runs only for the live listener (forceWatch=false),
-  // never for backfill/scan/refresh -- those can re-process the same
-  // historical messages on repeated runs (e.g. running the same 7d window
-  // scan twice), which would double-count activity since there's no
-  // per-message dedup here the way the Feedback table has via messageId
-  // uniqueness. The live path fires exactly once per real message, so it's
-  // the only safe source for this counter.
   if (!options.forceWatch) {
     recordActivity(message).catch(() => {});
   }
-  // Safe to run during backfill too (idempotent status update, not a
-  // counter), so no forceWatch gate here.
   checkForLiveStaffReply(message).catch(() => {});
 
   // --- Step 1: Lightweight pre-filter ---
   const prefilter = prefilterMessage(message.content);
   if (!prefilter.shouldAnalyze) return { status: "filtered_out" };
 
-  const channelName = resolveChannelName(message);
+  // --- Step 2: Dedupe check ---
+  const isDupe = await isDuplicateFromAuthor(message.author.id, message.content);
+  if (isDupe) return { status: "duplicate" };
 
-  // --- Step 2: Dedupe -- skip if same author just posted near-identical text ---
-  const isDupe = await isDuplicateFromAuthor(message.author.id, message.content, message.channel.id);
-  if (isDupe) {
-    logger.debug("Skipping duplicate message from same author", { author: message.author.username });
-    return { status: "duplicate" };
-  }
-
-  logger.debug("Message passed pre-filter", {
-    author: message.author.username,
-    channel: channelName,
-    critical: prefilter.isCritical,
-  });
-
-  // --- Step 3: Gather conversation context (works for channels, threads, forum posts) ---
+  // --- Step 3: Conversation context ---
   const context = await getConversationContext(message);
 
-  // --- Step 4: AI analysis -- structured outcome so failures are never silent ---
-  const outcome = await analyzeMessageWithStatus(message.content, message.author.username, channelName, context);
-
-  if (outcome.status === "disabled") {
-    return { status: "ai_disabled" };
-  }
-  if (outcome.status === "error") {
-    logger.warn("Message skipped: AI analysis failed", { author: message.author.username, error: outcome.message });
-    return { status: "ai_error", message: outcome.message };
-  }
+  // --- Step 4: AI analysis ---
+  const outcome = await analyzeMessageWithStatus(message.content, context);
+  if (outcome.status === "disabled") return { status: "ai_disabled" };
+  if (outcome.status === "error") return { status: "ai_error" };
 
   const analysis = outcome.analysis;
-
-  // Not feedback? Stop here.
   if (!analysis.isFeedback) return { status: "not_feedback" };
 
   // --- Step 5: Build message link ---
   const messageLink = `https://discord.com/channels/${message.guild.id}/${message.channel.id}/${message.id}`;
+  const channelName = resolveChannelName(message);
 
   // --- Step 5b: Moderation alert for toxicity -- fires independently of the
   // urgency/needsReply gating below, since toxic content often doesn't
   // naturally have "needsReply: yes" or high urgency but still deserves a
-  // heads-up. DM-only (not Slack), and deduplicated per channel over the
-  // aggregation window so a heated back-and-forth pings you once, not on
-  // every single message in the exchange.
+  // heads-up. DM-only (not Slack), deduplicated per channel over the
+  // aggregation window so a heated back-and-forth pings you once, not per message.
   if (analysis.category === "toxicity") {
-    const modAgg = await registerReport(
-      "moderation_dm",
-      message.channel.id,
-      message.author.id,
-      analysis.urgency,
-      analysis.aiSummary
-    );
+    const modAgg = await registerReport("moderation_dm", message.channel.id, message.author.id, analysis.urgency, analysis.aiSummary);
     if (modAgg.isNewGroup) {
-      await sendModerationAlertDm(
-        message.client,
-        analysis,
-        message.author.username,
-        channelName,
-        messageLink,
-        message.content
-      );
+      await sendModerationAlertDm(message.client, analysis, message.author.username, channelName, messageLink, message.content);
     }
   }
 
@@ -156,64 +95,38 @@ export async function handleMessage(
   const targetChannel = resolveAlertChannel(analysis.category, analysis.urgency);
   let slackTs: string | undefined;
 
-  const shouldConsiderAlert =
-    analysis.needsReply === "yes" || analysis.urgency === "high" || analysis.urgency === "critical";
+  const shouldConsiderAlert = analysis.needsReply === "yes" || analysis.urgency === "high" || analysis.urgency === "critical";
 
   if (shouldConsiderAlert) {
     if (bypass) {
-      // Critical: always its own fresh alert, no grouping, goes to #community-alerts
       slackTs = await sendSlackAlert(
-        {
-          analysis,
-          authorName: message.author.username,
-          channelName,
-          messageLink,
-          messageContent: message.content,
-        },
+        { analysis, authorName: message.author.username, channelName, messageLink, messageContent: message.content },
         targetChannel
       );
       await sendAlertDm(message.client, analysis, message.author.username, channelName, messageLink, message.content);
     } else {
-      const agg = await registerReport(
-        analysis.category,
-        message.channel.id,
-        message.author.id,
-        analysis.urgency,
-        analysis.aiSummary
-      );
+      const agg = await registerReport(analysis.category, message.channel.id, message.author.id, analysis.urgency, analysis.aiSummary);
 
       if (agg.isNewGroup) {
         slackTs = await sendSlackAlert(
-          {
-            analysis,
-            authorName: message.author.username,
-            channelName,
-            messageLink,
-            messageContent: message.content,
-          },
+          { analysis, authorName: message.author.username, channelName, messageLink, messageContent: message.content },
           targetChannel
         );
         if (slackTs) await saveSlackTs(agg.groupKey, slackTs, targetChannel);
         await sendAlertDm(message.client, analysis, message.author.username, channelName, messageLink, message.content);
       } else if (agg.existingSlackTs && agg.existingSlackChannel) {
-        const updated = await updateSlackAlert(
+        await updateSlackAlert(
           agg.existingSlackTs,
           agg.existingSlackChannel,
-          {
-            analysis,
-            authorName: message.author.username,
-            channelName,
-            messageLink,
-            messageContent: message.content,
-          },
+          { analysis, authorName: message.author.username, channelName, messageLink, messageContent: message.content },
           agg.reporterCount
         );
-        slackTs = updated ? agg.existingSlackTs : undefined;
+        slackTs = agg.existingSlackTs;
       }
     }
   }
 
-  // --- Step 8: Store in database ---
+  // --- Step 8: Store ---
   await storeFeedback({
     messageId: message.id,
     authorId: message.author.id,
@@ -231,9 +144,9 @@ export async function handleMessage(
     category: analysis.category,
     urgency: analysis.urgency,
     needsReply: analysis.needsReply,
+    confidence: analysis.confidence,
     alerted: !!slackTs,
     targetChannel,
-    confidence: analysis.confidence,
   });
 
   return { status: "stored", alerted: !!slackTs };

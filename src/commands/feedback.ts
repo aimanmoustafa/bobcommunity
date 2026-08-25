@@ -6,160 +6,96 @@ import { backfillWatchedChannels } from "../services/backfill";
 import { parseFeedbackQuery } from "../services/queryParser";
 import { THEME_COLORS } from "../utils/theme";
 
-export async function handleSlashCommand(interaction: ChatInputCommandInteraction): Promise<void> {
-  const filter = interaction.options.getString("filter", true);
-  const search = interaction.options.getString("search") || undefined;
+function formatCategory(category: string): string {
+  return category.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
 
+export async function handleSlashCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  const sub = interaction.options.getSubcommand();
   await interaction.deferReply({ ephemeral: true });
 
   try {
-    if (filter === "stats") {
+    if (sub === "stats") {
       const stats = await getStats(7);
       const embed = new EmbedBuilder()
-        .setTitle("📊 Community Feedback Stats (7 days)")
+        .setTitle("📊 Feedback Stats (Last 7 Days)")
         .setColor(THEME_COLORS.orange)
         .addFields(
-          { name: "Total Feedback", value: `${stats.totalFeedback}`, inline: true },
-          { name: "Unanswered", value: `${stats.unansweredCount}`, inline: true },
-          {
-            name: "Top Categories",
-            value:
-              stats.byCategory
-                .slice(0, 5)
-                .map((c: { category: string; count: number }) => `${formatCategory(c.category)}: ${c.count}`)
-                .join("\n") || "None",
-          },
-          {
-            name: "Sentiment",
-            value:
-              stats.bySentiment
-                .map((s: { sentiment: string; count: number }) => `${s.sentiment}: ${s.count}`)
-                .join("\n") || "None",
-          }
-        )
-        .setTimestamp();
-
+          { name: "Total Feedback", value: String(stats.totalFeedback), inline: true },
+          { name: "Unanswered", value: String(stats.unansweredCount), inline: true },
+          { name: "Top Categories", value: stats.byCategory.slice(0, 5).map((c: any) => `${formatCategory(c.category)}: ${c.count}`).join("\n") || "none" }
+        );
       await interaction.editReply({ embeds: [embed] });
       return;
     }
 
-    if (filter === "issues") {
-      const issues = await getIssues({});
-      const open = issues.filter((i: { status: string }) => !["resolved", "ignored"].includes(i.status));
-      if (open.length === 0) {
-        await interaction.editReply("No open issues right now. 🎉");
-        return;
-      }
+    if (sub === "issues") {
+      const issues = await getIssues();
       const embed = new EmbedBuilder()
-        .setTitle("🔎 Open Community Issues")
+        .setTitle("🔧 Tracked Issues")
         .setColor(THEME_COLORS.darkOrange)
         .setDescription(
-          open
-            .slice(0, 10)
-            .map(
-              (i: { priority: string; title: string; mentionCount: number; uniqueUserIds: string[]; status: string }, idx: number) =>
-                `**${idx + 1}. [${i.priority.toUpperCase()}] ${i.title.slice(0, 80)}**\n` +
-                `${i.mentionCount} mentions | ${i.uniqueUserIds.length} unique players | status: ${i.status}`
-            )
-            .join("\n\n")
-        )
-        .setTimestamp();
+          issues.length > 0
+            ? issues.slice(0, 15).map((i: any) => `**[${i.priority.toUpperCase()}]** ${i.title.slice(0, 80)} -- ${i.mentionCount} mentions (${i.status})`).join("\n")
+            : "No open issues."
+        );
       await interaction.editReply({ embeds: [embed] });
       return;
     }
 
-    if (filter === "backfill") {
-      await interaction.editReply(
-        "Scanning each watched channel for anything new since the last check... this may take a minute, I'll follow up here when done."
-      );
+    if (sub === "export") {
+      const feedback = await getFeedback({ days: 30 });
+      const csv = toCsv(feedback as any);
+      const file = new AttachmentBuilder(Buffer.from(csv), { name: "feedback-export.csv" });
+      await interaction.editReply({ content: "Export ready:", files: [file] });
+      return;
+    }
+
+    if (sub === "backfill") {
+      await interaction.editReply("Backfilling watched channels...");
       const result = await backfillWatchedChannels(interaction.client);
-      const lines = [
-        `Backfill complete: ${result.channelsProcessed} channel(s) checked, ${result.scanned} new message(s) scanned.`,
-        `Stored as feedback: ${result.stored} (${result.alerted} alerted to Slack)`,
-      ];
-      if (result.aiErrors > 0) {
-        lines.push(`⚠️ ${result.aiErrors} message(s) could not be analyzed due to AI errors -- check ANTHROPIC_API_KEY / ANTHROPIC_MODEL.`);
-      }
-      if (result.aiDisabled > 0) {
-        lines.push(`⚠️ AI analysis is disabled -- ${result.aiDisabled} message(s) were seen but not classified.`);
-      }
-      await interaction.followUp({ content: lines.join("\n"), ephemeral: true });
-      return;
-    }
-
-    if (filter === "export") {
-      const feedback = await getFeedback({ search, days: 30 });
-      if (feedback.length === 0) {
-        await interaction.editReply("No feedback to export.");
-        return;
-      }
-      const csv = toCsv(feedback);
-      const attachment = new AttachmentBuilder(Buffer.from(csv, "utf-8"), {
-        name: `bob-feedback-${new Date().toISOString().split("T")[0]}.csv`,
-      });
-      await interaction.editReply({
-        content: `Exported ${feedback.length} feedback entries (last 30 days).`,
-        files: [attachment],
+      await interaction.followUp({
+        content: `Backfill complete: ${result.scanned} scanned, ${result.stored} stored, ${result.alerted} alerted.`,
+        ephemeral: true,
       });
       return;
     }
 
-    const filterMap: Record<string, any> = {
-      today: { days: 1 },
-      week: { days: 7 },
-      bugs: { category: "bug_report" },
-      urgent: { urgency: "high" },
-      unanswered: { needsReply: "yes" },
-    };
+    if (sub === "list") {
+      const filter = interaction.options.getString("filter");
+      const search = interaction.options.getString("search");
+      const parsed = search ? parseFeedbackQuery(search) : {};
 
-    // The search box doubles as a flexible query -- supports things like
-    // "category:matchmaking sentiment:negative today" or "from 12:00 to 18:00".
-    // Anything it parses (time window, category, sentiment, urgency) overrides
-    // the dropdown preset; any leftover words become a plain text search.
-    const parsed = parseFeedbackQuery(search);
-    const params: any = { ...filterMap[filter] };
-    if (parsed.from || parsed.to) {
-      delete params.days;
-      params.from = parsed.from;
-      params.to = parsed.to;
-    }
-    if (parsed.category) params.category = parsed.category;
-    if (parsed.sentiment) params.sentiment = parsed.sentiment;
-    if (parsed.urgency) params.urgency = parsed.urgency;
-    params.search = parsed.freeText ?? (parsed.category || parsed.sentiment || parsed.urgency || parsed.from ? undefined : search);
+      const feedback = await getFeedback({
+        category: parsed.category,
+        sentiment: parsed.sentiment,
+        urgency: parsed.urgency || parsed.priority,
+        from: parsed.from,
+        to: parsed.to,
+        search: parsed.freeText,
+        days: filter === "today" ? 1 : filter === "week" ? 7 : undefined,
+        needsReply: filter === "unanswered" ? "yes" : undefined,
+      });
 
-    const feedback = await getFeedback(params);
-
-    if (feedback.length === 0) {
-      await interaction.editReply("No feedback found for this filter.");
+      const embed = new EmbedBuilder()
+        .setTitle("📋 Feedback")
+        .setColor(THEME_COLORS.orange)
+        .setDescription(
+          feedback
+            .slice(0, 10)
+            .map(
+              (f: { category: string; aiSummary: string | null; content: string; urgency: string; sentiment: string; messageLink: string }, i: number) =>
+                `**${i + 1}.** [${formatCategory(f.category)}] ${f.aiSummary || f.content.slice(0, 100)}\n` +
+                `Urgency: ${f.urgency} | Sentiment: ${f.sentiment} | [Link](${f.messageLink})`
+            )
+            .join("\n\n") || "No feedback found."
+        );
+      await interaction.editReply({ embeds: [embed] });
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle(`📋 Feedback: ${filter}${search ? ` (search: ${search})` : ""}`)
-      .setColor(THEME_COLORS.orange)
-      .setDescription(
-        feedback
-          .slice(0, 10)
-          .map(
-            (f: { category: string; aiSummary: string | null; content: string; urgency: string; sentiment: string; messageLink: string }, i: number) =>
-              `**${i + 1}.** [${formatCategory(f.category)}] ${f.aiSummary || f.content.slice(0, 100)}\n` +
-              `Urgency: ${f.urgency} | Sentiment: ${f.sentiment} | [Link](${f.messageLink})`
-          )
-          .join("\n\n")
-      )
-      .setFooter({ text: `Showing ${Math.min(10, feedback.length)} of ${feedback.length} results` })
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } catch (error) {
-    await interaction.editReply("Something went wrong fetching feedback.");
+    await interaction.editReply("Unknown subcommand.");
+  } catch (error: any) {
+    await interaction.editReply(`Error: ${error?.message || "Unknown error"}`);
   }
-}
-
-function formatCategory(category: string): string {
-  return category
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
 }

@@ -1,57 +1,15 @@
-import { logger } from "./logger";
-
-/**
- * Token-bucket rate limiter. Queues calls and releases them
- * at a controlled rate so bursts of Discord messages don't
- * slam the Anthropic API and trigger 429s.
- */
 export class RateLimiter {
-  private queue: Array<() => void> = [];
-  private tokens: number;
-  private readonly maxTokens: number;
-  private readonly refillIntervalMs: number;
-
-  constructor(maxTokens: number, refillIntervalMs: number) {
-    this.maxTokens = maxTokens;
-    this.tokens = maxTokens;
-    this.refillIntervalMs = refillIntervalMs;
-
-    setInterval(() => this.refill(), refillIntervalMs);
-  }
-
-  private refill(): void {
-    this.tokens = this.maxTokens;
-    this.drain();
-  }
-
-  private drain(): void {
-    while (this.tokens > 0 && this.queue.length > 0) {
-      const next = this.queue.shift();
-      if (next) {
-        this.tokens--;
-        next();
-      }
-    }
-  }
+  private timestamps: number[] = [];
+  constructor(private maxCalls: number, private windowMs: number) {}
 
   async acquire(): Promise<void> {
-    if (this.tokens > 0) {
-      this.tokens--;
-      return;
+    const now = Date.now();
+    this.timestamps = this.timestamps.filter((t) => now - t < this.windowMs);
+    if (this.timestamps.length >= this.maxCalls) {
+      const oldestCall = this.timestamps[0];
+      const waitMs = this.windowMs - (now - oldestCall);
+      if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
-
-    if (this.queue.length > 50) {
-      logger.warn("Rate limiter queue is large, dropping oldest request", {
-        queueSize: this.queue.length,
-      });
-      this.queue.shift();
-    }
-
-    return new Promise((resolve) => {
-      this.queue.push(resolve);
-    });
+    this.timestamps.push(Date.now());
   }
 }
-
-// Shared limiter: max 20 AI calls per 10 seconds (tune per your Anthropic tier)
-export const aiRateLimiter = new RateLimiter(20, 10_000);

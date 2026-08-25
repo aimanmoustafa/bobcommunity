@@ -16,7 +16,7 @@ import { handleMemberLeave } from "./memberEvents";
 import { handleSlashCommand } from "../commands/feedback";
 import { handleCommunityCommand } from "../commands/community";
 
-export function createDiscordClient(): Client {
+export function createClient(): Client {
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -27,36 +27,14 @@ export function createDiscordClient(): Client {
       // Required to receive DM replies from departed members (exit-feedback
       // reply tracking) -- without this, message content in DMs is invisible.
       GatewayIntentBits.DirectMessages,
-      // Thread and forum post messages ride on GuildMessages, but the bot
-      // needs to be a member of the thread to receive events from it --
-      // handled by the ThreadCreate auto-join listener below.
     ],
-    partials: [Partials.Message, Partials.Channel],
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember],
   });
 
-  client.once(Events.ClientReady, async (c) => {
-    logger.info(`Bot online as ${c.user.tag}`);
-    // Register slash commands here (inside the ready handler, attached before
-    // login) so there's no race between login resolving and the event firing.
-    try {
-      await registerCommands(c.user.id);
-    } catch (error) {
-      logger.error("Failed to register slash commands", error);
-    }
-  });
-
-  // Auto-join newly created threads and forum posts so the bot can see
-  // messages inside them (Discord requires membership to receive events
-  // from private threads, and it's good practice for public ones too).
-  client.on(Events.ThreadCreate, async (thread) => {
-    try {
-      if (thread.joinable) {
-        await thread.join();
-        logger.debug("Joined new thread", { name: thread.name, id: thread.id });
-      }
-    } catch (error) {
-      logger.debug("Could not join thread", error);
-    }
+  client.once(Events.ClientReady, async () => {
+    logger.info(`Bot online as ${client.user?.tag}`);
+    await registerCommands(client);
+    logStartupDiagnostic(client);
   });
 
   // Listen to every message -- covers regular channels, threads, and
@@ -84,48 +62,39 @@ export function createDiscordClient(): Client {
     }
   });
 
-  // Slash commands
   client.on(Events.InteractionCreate, async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
     try {
-      if (interaction.commandName === "community") {
-        await handleCommunityCommand(interaction);
-      } else {
-        await handleSlashCommand(interaction);
+      if (interaction.isChatInputCommand()) {
+        if (interaction.commandName === "feedback") {
+          await handleSlashCommand(interaction);
+        } else if (interaction.commandName === "community") {
+          await handleCommunityCommand(interaction);
+        }
       }
     } catch (error) {
-      logger.error("Error handling command", error);
+      logger.error("Error handling interaction", error);
     }
   });
 
   return client;
 }
 
-export async function registerCommands(clientId: string): Promise<void> {
+async function registerCommands(client: Client): Promise<void> {
   const commands = [
     new SlashCommandBuilder()
       .setName("feedback")
-      .setDescription("Query community feedback")
-      .addStringOption((opt) =>
-        opt
-          .setName("filter")
-          .setDescription("Filter type")
-          .setRequired(true)
-          .addChoices(
-            { name: "Today", value: "today" },
-            { name: "This Week", value: "week" },
-            { name: "Bugs", value: "bugs" },
-            { name: "Urgent", value: "urgent" },
-            { name: "Unanswered", value: "unanswered" },
-            { name: "Open Issues", value: "issues" },
-            { name: "Stats", value: "stats" },
-            { name: "Export CSV", value: "export" },
-            { name: "Backfill (scan recent history)", value: "backfill" }
-          )
+      .setDescription("Search and manage community feedback")
+      .addSubcommand((sub) =>
+        sub
+          .setName("list")
+          .setDescription("List feedback with optional filters")
+          .addStringOption((opt) => opt.setName("filter").setDescription("today | week | bugs | urgent | unanswered | open_issues"))
+          .addStringOption((opt) => opt.setName("search").setDescription("Flexible search: category:x sentiment:y today, from 12:00 to 18:00, etc."))
       )
-      .addStringOption((opt) =>
-        opt.setName("search").setDescription("Search term, or a flexible query like \"category:matchmaking sentiment:negative today\"").setRequired(false)
-      ),
+      .addSubcommand((sub) => sub.setName("stats").setDescription("Show feedback statistics"))
+      .addSubcommand((sub) => sub.setName("issues").setDescription("Show tracked issues"))
+      .addSubcommand((sub) => sub.setName("export").setDescription("Export feedback to CSV/JSON"))
+      .addSubcommand((sub) => sub.setName("backfill").setDescription("Scan channel history for missed feedback")),
     new SlashCommandBuilder()
       .setName("community")
       .setDescription("Quick community intelligence commands")
@@ -166,12 +135,25 @@ export async function registerCommands(clientId: string): Promise<void> {
           )
       )
       .addSubcommand((sub) =>
-        sub.setName("todo").setDescription("Your personal action queue: needs-reply items + flagged follow-ups")
+        sub
+          .setName("todo")
+          .setDescription("Your personal action queue: needs-reply items + flagged follow-ups")
+          .addStringOption((opt) =>
+            opt
+              .setName("window")
+              .setDescription("Scope to a recent period (default: all time)")
+              .setRequired(false)
+              .addChoices(
+                { name: "Last 24 hours", value: "24h" },
+                { name: "Last 7 days", value: "7d" },
+                { name: "Last 30 days", value: "30d" }
+              )
+          )
       )
       .addSubcommand((sub) =>
         sub
           .setName("report")
-          .setDescription("Full digest report")
+          .setDescription("Run the daily or weekly digest on demand")
           .addStringOption((opt) =>
             opt
               .setName("period")
@@ -242,9 +224,18 @@ export async function registerCommands(clientId: string): Promise<void> {
       ),
   ];
 
-  const rest = new REST({ version: "10" }).setToken(config.discord.token);
-  await rest.put(Routes.applicationGuildCommands(clientId, config.discord.guildId), {
-    body: commands.map((c) => c.toJSON()),
-  });
+  const rest = new REST().setToken(config.discord.token);
+  await rest.put(Routes.applicationGuildCommands(client.user!.id, config.discord.guildId), { body: commands });
   logger.info("Slash commands registered");
+}
+
+function logStartupDiagnostic(client: Client): void {
+  logger.info("===== BoB Community Bot: Startup Diagnostic =====");
+  logger.info(`AI Provider: ${config.ai.provider}`);
+  logger.info(`AI Model: ${config.ai.model}`);
+  logger.info(`API Key: ${config.ai.apiKey ? "Configured" : "MISSING"}`);
+  logger.info(`Discord: Connected`);
+  logger.info(`Watched Channels: ${config.discord.watchedChannelIds.length}`);
+  logger.info(`AI Analysis: ${config.ai.apiKey ? "Enabled" : "Disabled"}`);
+  logger.info("==================================================");
 }

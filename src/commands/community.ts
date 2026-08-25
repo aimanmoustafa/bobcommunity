@@ -5,6 +5,11 @@ import { assignIssue } from "../services/issues";
 import { generatePeakTimesReport } from "../services/activity";
 import { THEME_COLORS } from "../utils/theme";
 
+function hoursSinceMidnight(): number {
+  const now = new Date();
+  return Math.floor((now.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / (60 * 60 * 1000));
+}
+
 export async function handleCommunityCommand(interaction: ChatInputCommandInteraction): Promise<void> {
   const sub = interaction.options.getSubcommand();
 
@@ -37,7 +42,8 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
     }
 
     if (sub === "todo") {
-      const report = await generateTodoQueue();
+      const window = interaction.options.getString("window") as "24h" | "7d" | "30d" | null;
+      const report = await generateTodoQueue(window || undefined);
       const embed = new EmbedBuilder()
         .setTitle("✅ Your Action Queue")
         .setColor(THEME_COLORS.orange)
@@ -51,9 +57,9 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
       const hours = interaction.options.getInteger("hours") || 6;
       const report = await generatePulse(hours);
       const embed = new EmbedBuilder()
-        .setTitle("📡 Community Pulse")
+        .setTitle("💓 Community Pulse")
         .setColor(THEME_COLORS.orange)
-        .setDescription(report)
+        .setDescription(report.slice(0, 4096))
         .setTimestamp();
       await interaction.editReply({ embeds: [embed] });
       return;
@@ -63,9 +69,9 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
       const period = interaction.options.getString("period") || "today";
       const report = period === "week" ? await generateWeeklyReport() : await generateDailyReport();
       const embed = new EmbedBuilder()
-        .setTitle(period === "week" ? "📅 Weekly Community Report" : "📊 Today's Community Report")
+        .setTitle(period === "week" ? "📅 Weekly Report" : "📊 Daily Report")
         .setColor(THEME_COLORS.orange)
-        .setDescription(report)
+        .setDescription(report.slice(0, 4096))
         .setTimestamp();
       await interaction.editReply({ embeds: [embed] });
       return;
@@ -76,26 +82,15 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
       const hoursMap: Record<string, number> = { today: hoursSinceMidnight(), last24h: 24, "7d": 168 };
       const hours = window ? hoursMap[window] : undefined;
 
-      await interaction.editReply(
-        window
-          ? `Refreshing: scanning the last ${window === "today" ? "day" : window} across watched channels...`
-          : "Refreshing: checking each watched channel for anything new since the last refresh..."
-      );
+      await interaction.editReply(window ? `Refreshing: ${window}...` : "Refreshing since last checkpoint...");
       const result = await backfillWatchedChannels(interaction.client, { hours });
 
       const lines = [
-        `Refresh complete: ${result.channelsProcessed} channel(s) checked, ${result.scanned} new message(s) scanned.`,
+        `Refresh complete: ${result.scanned} message(s) scanned across ${result.channelsProcessed} channel(s).`,
         `Stored as feedback: ${result.stored} (${result.alerted} alerted to Slack)`,
       ];
-      if (result.aiErrors > 0) {
-        lines.push(`⚠️ ${result.aiErrors} message(s) could not be analyzed due to AI errors -- check ANTHROPIC_API_KEY / ANTHROPIC_MODEL.`);
-      }
-      if (result.aiDisabled > 0) {
-        lines.push(`⚠️ AI analysis is disabled -- ${result.aiDisabled} message(s) were seen but not classified.`);
-      }
-      if (result.truncatedChannels.length > 0) {
-        lines.push(`Note: ${result.truncatedChannels.length} channel(s) hit the scan limit -- run refresh again to continue further back.`);
-      }
+      if (result.aiErrors > 0) lines.push(`⚠️ ${result.aiErrors} message(s) could not be analyzed due to AI errors.`);
+      if (result.aiDisabled > 0) lines.push(`⚠️ AI analysis is disabled -- ${result.aiDisabled} message(s) were seen but not classified.`);
 
       await interaction.followUp({ content: lines.join("\n"), ephemeral: true });
       return;
@@ -151,13 +146,7 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
     }
 
     await interaction.editReply("Unknown subcommand.");
-  } catch (error) {
-    await interaction.editReply("Something went wrong running that command.");
+  } catch (error: any) {
+    await interaction.editReply(`Error: ${error?.message || "Unknown error"}`);
   }
-}
-
-function hoursSinceMidnight(): number {
-  const now = new Date();
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return (now.getTime() - midnight.getTime()) / (60 * 60 * 1000);
 }

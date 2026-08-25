@@ -4,21 +4,23 @@ import { createNotionEntry, updateNotionEntryForEscalation } from "./notion";
 import type { MessageAnalysis } from "../ai/analyzer";
 
 const OPEN_STATUSES = ["new", "investigating", "acknowledged", "in_progress"];
-
-// Issues stay "attachable" for this long after the last report.
-// A matchmaking complaint 5 days after the last one is likely a new wave.
+const VALID_STATUSES = [...OPEN_STATUSES, "resolved", "ignored"];
 const ISSUE_ATTACH_WINDOW_HOURS = 72;
 
-/**
- * Attaches a feedback item to an existing open issue for the same category,
- * or creates a new issue if none is active. Returns the issue ID.
- *
- * Also drives the Notion sync: a brand-new issue creates a CM DB entry
- * (plus a linked Bug/Feature DB entry where relevant); a repeat report on
- * an existing issue patches that same Notion page instead of creating a
- * duplicate, updating report counts and any urgency escalation. Notion
- * sync is a no-op if disabled, and never blocks issue tracking if it fails.
- */
+function buildIssueTitle(analysis: MessageAnalysis): string {
+  const categoryLabel = analysis.category.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return `${categoryLabel}: ${analysis.aiSummary}`.slice(0, 100);
+}
+
+function urgencyToPriority(urgency: string): string {
+  return urgency;
+}
+
+function escalatePriority(currentPriority: string, newUrgency: string): string {
+  const rank: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+  return (rank[newUrgency] ?? 0) > (rank[currentPriority] ?? 0) ? newUrgency : currentPriority;
+}
+
 export async function attachToIssue(
   analysis: MessageAnalysis,
   authorId: string,
@@ -29,18 +31,12 @@ export async function attachToIssue(
     const windowStart = new Date(Date.now() - ISSUE_ATTACH_WINDOW_HOURS * 60 * 60 * 1000);
 
     const existing = await prisma.issue.findFirst({
-      where: {
-        category: analysis.category,
-        status: { in: OPEN_STATUSES },
-        lastReported: { gte: windowStart },
-      },
+      where: { category: analysis.category, status: { in: OPEN_STATUSES }, lastReported: { gte: windowStart } },
       orderBy: { lastReported: "desc" },
     });
 
     if (existing) {
-      const uniqueUserIds = existing.uniqueUserIds.includes(authorId)
-        ? existing.uniqueUserIds
-        : [...existing.uniqueUserIds, authorId];
+      const uniqueUserIds = existing.uniqueUserIds.includes(authorId) ? existing.uniqueUserIds : [...existing.uniqueUserIds, authorId];
 
       const updated = await prisma.issue.update({
         where: { id: existing.id },
@@ -82,13 +78,7 @@ export async function attachToIssue(
 
     logger.info("New issue created", { id: created.id, title: created.title });
 
-    const notionResult = await createNotionEntry({
-      analysis,
-      authorName,
-      messageLink,
-      createdAt: new Date(),
-      uniqueReporterCount: 1,
-    });
+    const notionResult = await createNotionEntry({ analysis, authorName, messageLink, createdAt: new Date(), uniqueReporterCount: 1 });
 
     if (notionResult) {
       await prisma.issue.update({
@@ -109,19 +99,13 @@ export async function attachToIssue(
   }
 }
 
-export async function getIssues(filters: { status?: string; category?: string } = {}) {
-  const where: any = {};
-  if (filters.status) where.status = filters.status;
-  if (filters.category) where.category = filters.category;
-
+export async function getIssues(status?: string) {
   return prisma.issue.findMany({
-    where,
-    orderBy: [{ lastReported: "desc" }],
-    take: 50,
+    where: status ? { status } : { status: { in: OPEN_STATUSES } },
+    orderBy: [{ priority: "desc" }, { mentionCount: "desc" }],
+    take: 25,
   });
 }
-
-const VALID_STATUSES = ["new", "investigating", "acknowledged", "in_progress", "resolved", "ignored"];
 
 export async function updateIssueStatus(issueId: string, status: string) {
   if (!VALID_STATUSES.includes(status)) {
@@ -130,23 +114,9 @@ export async function updateIssueStatus(issueId: string, status: string) {
   return prisma.issue.update({ where: { id: issueId }, data: { status } });
 }
 
-/**
- * Assigns an open issue to a named person (e.g. a developer) and optionally
- * flags it for follow-up, so the digest can surface "went to X, follow-up
- * flagged" the way a human triager would note it. Matches by a case-insensitive
- * substring of the issue title since Discord slash commands don't have a
- * clean way to pick from a live list of issue IDs.
- */
-export async function assignIssue(
-  searchTerm: string,
-  assignee: string,
-  flagFollowUp?: boolean
-) {
+export async function assignIssue(searchTerm: string, assignee: string, flagFollowUp?: boolean) {
   const issue = await prisma.issue.findFirst({
-    where: {
-      title: { contains: searchTerm, mode: "insensitive" },
-      status: { in: OPEN_STATUSES },
-    },
+    where: { title: { contains: searchTerm, mode: "insensitive" }, status: { in: OPEN_STATUSES } },
     orderBy: { lastReported: "desc" },
   });
 
@@ -154,38 +124,6 @@ export async function assignIssue(
 
   return prisma.issue.update({
     where: { id: issue.id },
-    data: {
-      assignedTo: assignee,
-      ...(flagFollowUp !== undefined ? { followUpFlagged: flagFollowUp } : {}),
-    },
+    data: { assignedTo: assignee, ...(flagFollowUp !== undefined ? { followUpFlagged: flagFollowUp } : {}) },
   });
-}
-
-function buildIssueTitle(analysis: MessageAnalysis): string {
-  const cat = analysis.category
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-  const summary = analysis.aiSummary?.slice(0, 80) || "";
-  return summary ? `${cat}: ${summary}` : cat;
-}
-
-function urgencyToPriority(urgency: string): string {
-  switch (urgency) {
-    case "critical":
-      return "critical";
-    case "high":
-      return "high";
-    case "medium":
-      return "medium";
-    default:
-      return "low";
-  }
-}
-
-const PRIORITY_RANK: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
-
-function escalatePriority(current: string, newUrgency: string): string {
-  const candidate = urgencyToPriority(newUrgency);
-  return (PRIORITY_RANK[candidate] ?? 0) > (PRIORITY_RANK[current] ?? 0) ? candidate : current;
 }

@@ -1,49 +1,22 @@
 import { logger } from "./logger";
 
-interface RetryOptions {
-  retries?: number;
-  baseDelayMs?: number;
-  label?: string;
-}
-
-/**
- * Retries an async function with exponential backoff.
- * Used for Anthropic and Slack API calls that can fail transiently.
- */
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  options: RetryOptions = {}
+  options: { label: string; retries?: number; delayMs?: number } = { label: "operation" }
 ): Promise<T> {
-  const { retries = 3, baseDelayMs = 500, label = "operation" } = options;
+  const retries = options.retries ?? 3;
+  const delayMs = options.delayMs ?? 500;
+  let lastError: any;
 
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       return await fn();
-    } catch (error: any) {
+    } catch (error) {
       lastError = error;
-
-      // Don't retry on 4xx client errors (bad request, auth, etc.) except 429
-      const status = error?.status || error?.response?.status;
-      if (status && status >= 400 && status < 500 && status !== 429) {
-        logger.warn(`${label} failed with non-retryable status ${status}`, {
-          message: error?.message,
-        });
-        throw error;
-      }
-
-      if (attempt === retries) break;
-
-      const delay = baseDelayMs * Math.pow(2, attempt) + Math.random() * 200;
-      logger.warn(`${label} failed (attempt ${attempt + 1}/${retries + 1}), retrying in ${Math.round(delay)}ms`, {
-        error: error?.message,
-      });
-      await sleep(delay);
+      logger.warn(`${options.label} failed (attempt ${attempt}/${retries})`, { error: (error as any)?.message });
+      if (attempt < retries) await sleep(delayMs * attempt);
     }
   }
-
-  logger.error(`${label} failed after ${retries + 1} attempts`, lastError);
   throw lastError;
 }
 

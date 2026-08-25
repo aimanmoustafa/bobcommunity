@@ -7,25 +7,19 @@ import { resolveDigestChannel } from "./routing";
 import { findStaleItems, markStaleAlertSent } from "./responseTracking";
 import { logger } from "../utils/logger";
 
-const CHECK_INTERVAL_MS = 15 * 60 * 1000; // check every 15 minutes
-const DAILY_REPORT_HOUR_UTC = 21; // ~midnight Cairo time
-const WEEKLY_REPORT_DAY = 0; // Sunday
+const CHECK_INTERVAL_MS = 15 * 60 * 1000;
+const DAILY_REPORT_HOUR_UTC = 21;
+const WEEKLY_REPORT_DAY = 0;
 const WEEKLY_REPORT_HOUR_UTC = 21;
 
-/**
- * DB-backed scheduler. Persists lastRunAt per task so a process restart
- * near the trigger window doesn't cause a skipped or duplicated report.
- */
 export function startScheduler(client: Client): void {
   setInterval(() => runChecks(client).catch((e) => logger.error("Scheduler tick failed", e)), CHECK_INTERVAL_MS);
-  // Also run once shortly after boot in case the process was down at trigger time
   setTimeout(() => runChecks(client).catch((e) => logger.error("Scheduler initial tick failed", e)), 30_000);
   logger.info("Scheduler started (daily report ~21:00 UTC, weekly on Sundays)");
 }
 
 async function runChecks(client: Client): Promise<void> {
   const now = new Date();
-
   await maybeRunDaily(client, now);
   await maybeRunWeekly(client, now);
   await checkStaleItems(client);
@@ -36,8 +30,6 @@ async function checkStaleItems(client: Client): Promise<void> {
     const stale = await findStaleItems();
     if (stale.length === 0) return;
 
-    // DM only, by design -- response-time/staleness tracking is a personal
-    // accountability signal, not something broadcast to the shared Slack channel.
     await sendStaleItemsDm(client, stale);
     await markStaleAlertSent(stale.map((s) => s.id));
 
@@ -88,17 +80,9 @@ async function getState(taskName: string) {
 }
 
 async function setState(taskName: string, lastRunAt: Date): Promise<void> {
-  await prisma.schedulerState.upsert({
-    where: { taskName },
-    create: { taskName, lastRunAt },
-    update: { lastRunAt },
-  });
+  await prisma.schedulerState.upsert({ where: { taskName }, create: { taskName, lastRunAt }, update: { lastRunAt } });
 }
 
 function isSameUtcDay(a: Date, b: Date): boolean {
-  return (
-    a.getUTCFullYear() === b.getUTCFullYear() &&
-    a.getUTCMonth() === b.getUTCMonth() &&
-    a.getUTCDate() === b.getUTCDate()
-  );
+  return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
 }
