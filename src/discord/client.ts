@@ -251,6 +251,14 @@ async function registerCommands(client: Client): Promise<void> {
       )
       .addSubcommand((sub) =>
         sub
+          .setName("notiondata")
+          .setDescription("Get an issue's data formatted for pasting into a Notion-creating chat with Claude")
+          .addStringOption((opt) =>
+            opt.setName("issue").setDescription("Start typing to search open issues").setRequired(true).setAutocomplete(true)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
           .setName("scan")
           .setDescription("Manually scan any channel, even ones not in the regular watch list")
           .addChannelOption((opt) =>

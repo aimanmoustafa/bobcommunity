@@ -1,7 +1,8 @@
-import { ChatInputCommandInteraction, AutocompleteInteraction, EmbedBuilder } from "discord.js";
+import { ChatInputCommandInteraction, AutocompleteInteraction, EmbedBuilder, AttachmentBuilder } from "discord.js";
 import { generatePulse, generateDailyReport, generateWeeklyReport, generateTopicReport, generateTodoQueue } from "../services/feedback";
 import { backfillWatchedChannels, scanChannel } from "../services/backfill";
-import { assignIssue, resolveIssueByIdOrSearch, searchOpenIssuesForAutocomplete } from "../services/issues";
+import { assignIssue, resolveIssueByIdOrSearch, resolveIssueId, searchOpenIssuesForAutocomplete } from "../services/issues";
+import { formatIssueForNotionExport } from "../services/notionExport";
 import { generatePeakTimesReport } from "../services/activity";
 import { generateFaqGapReport } from "../services/faqGap";
 import { THEME_COLORS } from "../utils/theme";
@@ -139,6 +140,32 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
         .setDescription(report.slice(0, 4096))
         .setTimestamp();
       await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
+    if (sub === "notiondata") {
+      const search = interaction.options.getString("issue", true);
+      const issueId = await resolveIssueId(search);
+
+      if (!issueId) {
+        await interaction.editReply(`No open issue found matching "${search}". Try a shorter or different phrase from its title.`);
+        return;
+      }
+
+      const exportText = await formatIssueForNotionExport(issueId);
+      if (!exportText) {
+        await interaction.editReply("Could not generate export for that issue.");
+        return;
+      }
+
+      // Long exports go as a .txt file so nothing gets silently truncated --
+      // the whole point is an exact, complete copy-paste, not a preview.
+      if (exportText.length > 1900) {
+        const file = new AttachmentBuilder(Buffer.from(exportText), { name: "notion-export.txt" });
+        await interaction.editReply({ content: "Export ready -- copy this into a chat with Claude to create the real Notion entries:", files: [file] });
+      } else {
+        await interaction.editReply(`Copy this into a chat with Claude to create the real Notion entries:\n\`\`\`\n${exportText}\n\`\`\``);
+      }
       return;
     }
 

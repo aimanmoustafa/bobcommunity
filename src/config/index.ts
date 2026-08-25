@@ -47,6 +47,11 @@ export const config = {
     port: parseInt(process.env.PORT || "3000"),
     timezoneOffsetHours: parseInt(process.env.TIMEZONE_OFFSET_HOURS || "2"),
     staleReplyHours: parseInt(process.env.STALE_REPLY_HOURS || "24"),
+    // Used only for the manual Notion-export command below -- individual
+    // Discord messages don't carry a build version, so this is the CM's
+    // manually-set "current build" default, matching the same convention
+    // the manual Notion logging workflow already uses.
+    currentBuild: process.env.CURRENT_BOB_BUILD || "unknown",
     exitMessage:
       process.env.MEMBER_EXIT_MESSAGE ||
       "Hey there! You were part of the Blitz of Battle community and we noticed you left. We'd really appreciate your feedback.\n\nWhat were you hoping to see but didn't find? What made you leave? What would you like to see improved?\n\nYour input helps us make the game and community better.",

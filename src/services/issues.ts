@@ -172,3 +172,14 @@ export async function searchOpenIssuesForAutocomplete(query: string, limit: numb
     select: { id: true, title: true, priority: true, mentionCount: true },
   });
 }
+
+/**
+ * Resolves a search string (or exact ID from an autocomplete selection)
+ * to the real issue ID, reusing the same lookup as assign/resolve. Lets
+ * other callers (like the Notion export command) accept the same flexible
+ * input without duplicating the lookup logic.
+ */
+export async function resolveIssueId(idOrSearch: string): Promise<string | null> {
+  const issue = await findIssueByIdOrSearch(idOrSearch);
+  return issue?.id || null;
+}

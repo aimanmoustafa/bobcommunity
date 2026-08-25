@@ -11,7 +11,7 @@ const DEFAULT_CM_PERSON_ID = "28fd872b-594c-8113-9fe4-00020c6a61bc";
 
 const notion = config.notion.enabled ? new NotionClient({ auth: config.notion.apiKey }) : null;
 
-const TYPE_MAP: Record<string, string> = {
+export const TYPE_MAP: Record<string, string> = {
   bug_report: "Bug Report", performance: "Bug Report", exploit: "Cheating Report",
   monetization: "Payment Issue", complaint: "Complaint", balance: "Complaint",
   matchmaking: "Complaint", ui_ux: "Complaint", localization: "Complaint",
@@ -21,30 +21,30 @@ const TYPE_MAP: Record<string, string> = {
   suggestion: "Feature Request", feature_request: "Feature Request",
 };
 
-const SENTIMENT_MAP: Record<string, string> = {
+export const SENTIMENT_MAP: Record<string, string> = {
   positive: "Positive", excited: "Very Positive", neutral: "Neutral", confused: "Neutral",
   negative: "Negative", frustrated: "Negative", angry: "Very Negative",
 };
 
-const PRIORITY_MAP: Record<string, string> = { critical: "Critical", high: "High", medium: "Medium", low: "Low" };
-const BUG_PRIORITY_MAP: Record<string, string> = { critical: "P0", high: "P1", medium: "P2", low: "P3" };
-const DEV_FACING_CATEGORIES = ["bug_report", "performance", "matchmaking", "exploit"];
+export const PRIORITY_MAP: Record<string, string> = { critical: "Critical", high: "High", medium: "Medium", low: "Low" };
+export const BUG_PRIORITY_MAP: Record<string, string> = { critical: "P0", high: "P1", medium: "P2", low: "P3" };
+export const DEV_FACING_CATEGORIES = ["bug_report", "performance", "matchmaking", "exploit"];
 
-function impactLevelFor(n: number): string {
+export function impactLevelFor(n: number): string {
   if (n >= 15) return "Community-wide";
   if (n >= 5) return "Widespread";
   if (n >= 2) return "Small Group";
   return "Individual";
 }
 
-function communitySentimentFor(n: number): string {
+export function communitySentimentFor(n: number): string {
   if (n >= 10) return "Highly Requested";
   if (n >= 5) return "Popular";
   if (n >= 2) return "Moderate Interest";
   return "N/A";
 }
 
-function guessBugCategories(text: string): string[] {
+export function guessBugCategories(text: string): string[] {
   const lower = text.toLowerCase();
   const found: string[] = [];
   if (/crash|freeze|force.?close/.test(lower)) found.push("Crash/Stability");
