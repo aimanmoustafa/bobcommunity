@@ -19,6 +19,10 @@ export const config = {
       .split(",")
       .map((id) => id.trim())
       .filter(Boolean),
+    // Dedicated recipient for leave-DM reply forwards specifically -- kept
+    // separate from the general dmUserIds alert list, so who gets escalation
+    // pings is configurable independently of who gets forwarded feedback.
+    primaryUserId: process.env.DISCORD_PRIMARY_USER_ID || "847724185434325033",
   },
   slack: {
     token: required("SLACK_BOT_TOKEN"),

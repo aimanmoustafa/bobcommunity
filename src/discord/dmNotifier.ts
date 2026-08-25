@@ -12,25 +12,39 @@ function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max) + "..." : str;
 }
 
+/**
+ * Single-user send with the shared try/catch/log pattern. Reused by both
+ * sendEmbedToConfiguredUsers (loops the general alert list) and the
+ * primary-user-specific sends below, so there's one place that knows how
+ * to actually deliver a DM and log a failure -- not duplicated per caller.
+ */
+async function trySendToUser(
+  client: Client,
+  userId: string,
+  embed: EmbedBuilder,
+  options: { pingRecipient?: boolean; pingText?: string } = {}
+): Promise<void> {
+  try {
+    const user = await client.users.fetch(userId);
+    const payload: any = { embeds: [embed] };
+    if (options.pingRecipient) {
+      payload.content = `<@${userId}>${options.pingText ? ` ${options.pingText}` : ""}`;
+      payload.allowedMentions = { users: [userId] };
+    }
+    await user.send(payload);
+  } catch (error: any) {
+    logger.warn("Failed to DM user (closed DMs, invalid ID, or no shared server?)", { userId, error: error?.message });
+  }
+}
+
 export async function sendEmbedToConfiguredUsers(
   client: Client,
   embed: EmbedBuilder,
   options: { pingRecipient?: boolean; pingText?: string } = {}
 ): Promise<void> {
   if (config.discord.dmUserIds.length === 0) return;
-
   for (const userId of config.discord.dmUserIds) {
-    try {
-      const user = await client.users.fetch(userId);
-      const payload: any = { embeds: [embed] };
-      if (options.pingRecipient) {
-        payload.content = `<@${userId}>${options.pingText ? ` ${options.pingText}` : ""}`;
-        payload.allowedMentions = { users: [userId] };
-      }
-      await user.send(payload);
-    } catch (error: any) {
-      logger.warn("Failed to DM configured user (closed DMs, invalid ID, or no shared server?)", { userId, error: error?.message });
-    }
+    await trySendToUser(client, userId, embed, options);
   }
 }
 
@@ -88,14 +102,38 @@ export async function sendModerationAlertDm(
   await sendEmbedToConfiguredUsers(client, embed, { pingRecipient: true, pingText: "⚠️ Possible toxic/inappropriate message detected" });
 }
 
-export async function sendExitReplyForward(client: Client, username: string, userId: string, content: string): Promise<void> {
-  const embed = new EmbedBuilder()
-    .setTitle("📨 Exit Feedback Reply")
-    .setColor(THEME_COLORS.lightOrange)
-    .setDescription(`**${username}** (\`${userId}\`) replied to their exit-feedback DM:\n\n> ${truncate(content, 1500)}`)
-    .setTimestamp();
+function formatReceivedTimestamp(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+}
 
-  await sendEmbedToConfiguredUsers(client, embed);
+/**
+ * Forwards a reply to the Leave DM to the dedicated primary user
+ * (DISCORD_PRIMARY_USER_ID), not the general alert list -- this is a
+ * distinct escalation path per spec, even though in practice it's often
+ * the same person as the general DM_USER_IDS. Format matches the exact
+ * template requested: Member, User ID, Reply, Source, Received.
+ */
+export async function sendExitReplyForward(
+  client: Client,
+  username: string,
+  userId: string,
+  content: string,
+  repliedAt: Date = new Date()
+): Promise<void> {
+  const embed = new EmbedBuilder()
+    .setTitle("📨 Leave Feedback Received")
+    .setColor(THEME_COLORS.lightOrange)
+    .addFields(
+      { name: "Member", value: `${username} (<@${userId}>)`, inline: true },
+      { name: "User ID", value: `\`${userId}\``, inline: true },
+      { name: "Source", value: "Leave DM", inline: true },
+      { name: "Received", value: formatReceivedTimestamp(repliedAt), inline: true },
+      { name: "Reply", value: `> ${truncate(content, 1500)}` }
+    )
+    .setTimestamp(repliedAt);
+
+  await trySendToUser(client, config.discord.primaryUserId, embed);
 }
 
 interface StaleItemLike {

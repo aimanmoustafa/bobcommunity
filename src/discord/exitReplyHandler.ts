@@ -14,7 +14,7 @@ export async function handleExitDmReply(message: Message): Promise<void> {
       return;
     }
 
-    await sendExitReplyForward(message.client, recipient.username, message.author.id, message.content);
+    await sendExitReplyForward(message.client, recipient.username, message.author.id, message.content, message.createdAt);
     await prisma.exitDmRecipient.update({ where: { userId: message.author.id }, data: { repliedAt: new Date() } });
 
     logger.info("Forwarded exit-feedback reply", { username: recipient.username });
