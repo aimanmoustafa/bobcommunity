@@ -62,6 +62,43 @@ export async function getAverageResponseTimeMinutes(days: number = 7): Promise<n
   return Math.round(total / rows.length);
 }
 
+export interface CategoryResponseTime {
+  category: string;
+  avgMinutes: number;
+  count: number;
+}
+
+/**
+ * Same average as getAverageResponseTimeMinutes, but broken out per
+ * category -- a single blended figure hides that, say, payment issues get
+ * answered in 10 minutes while balance feedback sits for two days. Sorted
+ * slowest-first so the categories most worth attention surface at the top.
+ */
+export async function getResponseTimeByCategory(days: number = 7): Promise<CategoryResponseTime[]> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const rows = await prisma.feedback.findMany({
+    where: { respondedAt: { gte: since }, responseTimeMinutes: { not: null } },
+    select: { category: true, responseTimeMinutes: true },
+  });
+
+  if (rows.length === 0) return [];
+
+  const byCategory = new Map<string, number[]>();
+  for (const r of rows) {
+    const list = byCategory.get(r.category) || [];
+    list.push(r.responseTimeMinutes || 0);
+    byCategory.set(r.category, list);
+  }
+
+  const result: CategoryResponseTime[] = [...byCategory.entries()].map(([category, times]) => ({
+    category,
+    avgMinutes: Math.round(times.reduce((a, b) => a + b, 0) / times.length),
+    count: times.length,
+  }));
+
+  return result.sort((a, b) => b.avgMinutes - a.avgMinutes);
+}
+
 export function formatResponseTime(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);

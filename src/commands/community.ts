@@ -1,8 +1,9 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import { ChatInputCommandInteraction, AutocompleteInteraction, EmbedBuilder } from "discord.js";
 import { generatePulse, generateDailyReport, generateWeeklyReport, generateTopicReport, generateTodoQueue } from "../services/feedback";
 import { backfillWatchedChannels, scanChannel } from "../services/backfill";
-import { assignIssue } from "../services/issues";
+import { assignIssue, resolveIssueByIdOrSearch, searchOpenIssuesForAutocomplete } from "../services/issues";
 import { generatePeakTimesReport } from "../services/activity";
+import { generateFaqGapReport } from "../services/faqGap";
 import { THEME_COLORS } from "../utils/theme";
 
 function hoursSinceMidnight(): number {
@@ -114,6 +115,33 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
       return;
     }
 
+    if (sub === "resolve") {
+      const search = interaction.options.getString("issue", true);
+      const status = interaction.options.getString("status", true);
+
+      const updated = await resolveIssueByIdOrSearch(search, status);
+
+      if (!updated) {
+        await interaction.editReply(`No open issue found matching "${search}". Try a shorter or different phrase from its title.`);
+        return;
+      }
+
+      await interaction.editReply(`Marked *"${updated.title.slice(0, 80)}"* as **${status}**.`);
+      return;
+    }
+
+    if (sub === "faqgap") {
+      const days = interaction.options.getInteger("days") || 30;
+      const report = await generateFaqGapReport(days);
+      const embed = new EmbedBuilder()
+        .setTitle("📋 FAQ Content Gaps")
+        .setColor(THEME_COLORS.orange)
+        .setDescription(report.slice(0, 4096))
+        .setTimestamp();
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
     if (sub === "scan") {
       const channel = interaction.options.getChannel("channel", true);
       const window = interaction.options.getString("window");
@@ -148,5 +176,27 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
     await interaction.editReply("Unknown subcommand.");
   } catch (error: any) {
     await interaction.editReply(`Error: ${error?.message || "Unknown error"}`);
+  }
+}
+
+/**
+ * Backs the live-typing dropdown on the "issue" option for both
+ * /community assign and /community resolve. Returns up to 25 matching open
+ * issues; the value sent back is the issue's real ID, so once someone
+ * picks a suggestion, the command handler gets an exact match instead of
+ * doing fuzzy title search again.
+ */
+export async function handleCommunityAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
+  const focused = interaction.options.getFocused();
+  try {
+    const issues = await searchOpenIssuesForAutocomplete(focused, 25);
+    await interaction.respond(
+      issues.map((i) => ({
+        name: `[${i.priority.toUpperCase()}] ${i.title.slice(0, 80)} (${i.mentionCount} mentions)`.slice(0, 100),
+        value: i.id,
+      }))
+    );
+  } catch {
+    await interaction.respond([]);
   }
 }

@@ -114,16 +114,61 @@ export async function updateIssueStatus(issueId: string, status: string) {
   return prisma.issue.update({ where: { id: issueId }, data: { status } });
 }
 
-export async function assignIssue(searchTerm: string, assignee: string, flagFollowUp?: boolean) {
-  const issue = await prisma.issue.findFirst({
-    where: { title: { contains: searchTerm, mode: "insensitive" }, status: { in: OPEN_STATUSES } },
+/**
+ * Resolves an issue by exact ID first (what autocomplete selections
+ * provide, since the option's value is set to the issue ID there), falling
+ * back to a case-insensitive title-substring search for anyone who types
+ * free text without picking a suggestion. Shared by /community assign and
+ * /community resolve so both get exact-match reliability once autocomplete
+ * is used, without needing two copies of this lookup.
+ */
+async function findIssueByIdOrSearch(idOrSearch: string) {
+  const byId = await prisma.issue.findUnique({ where: { id: idOrSearch } });
+  if (byId) return byId;
+
+  return prisma.issue.findFirst({
+    where: { title: { contains: idOrSearch, mode: "insensitive" }, status: { in: OPEN_STATUSES } },
     orderBy: { lastReported: "desc" },
   });
+}
 
+export async function assignIssue(searchTerm: string, assignee: string, flagFollowUp?: boolean) {
+  const issue = await findIssueByIdOrSearch(searchTerm);
   if (!issue) return null;
 
   return prisma.issue.update({
     where: { id: issue.id },
     data: { assignedTo: assignee, ...(flagFollowUp !== undefined ? { followUpFlagged: flagFollowUp } : {}) },
+  });
+}
+
+/**
+ * Same idea as assignIssue, but changes status instead. Accepts an ID
+ * (from autocomplete) or a title fragment (typed free text).
+ */
+export async function resolveIssueByIdOrSearch(idOrSearch: string, status: string) {
+  if (!VALID_STATUSES.includes(status)) {
+    throw new Error(`Invalid status: ${status}. Valid: ${VALID_STATUSES.join(", ")}`);
+  }
+  const issue = await findIssueByIdOrSearch(idOrSearch);
+  if (!issue) return null;
+
+  return prisma.issue.update({ where: { id: issue.id }, data: { status } });
+}
+
+/**
+ * Backing query for slash command autocomplete on the "issue" option --
+ * returns open issues matching what's typed so far, capped at Discord's
+ * 25-choice limit. Used by both /community assign and /community resolve.
+ */
+export async function searchOpenIssuesForAutocomplete(query: string, limit: number = 25) {
+  return prisma.issue.findMany({
+    where: {
+      status: { in: OPEN_STATUSES },
+      ...(query ? { title: { contains: query, mode: "insensitive" } } : {}),
+    },
+    orderBy: { lastReported: "desc" },
+    take: limit,
+    select: { id: true, title: true, priority: true, mentionCount: true },
   });
 }

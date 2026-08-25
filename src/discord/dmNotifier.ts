@@ -150,3 +150,16 @@ export async function sendStaleItemsDm(client: Client, items: StaleItemLike[]): 
   const embed = new EmbedBuilder().setTitle("⏰ Stale: Still Awaiting Reply").setColor(THEME_COLORS.darkOrange).setDescription(lines.slice(0, 4096)).setTimestamp();
   await sendEmbedToConfiguredUsers(client, embed);
 }
+
+/**
+ * Startup/crash visibility. A crash otherwise looks identical to silence --
+ * you'd only find out the bot went down by noticing nothing's happening.
+ * The "started" DM confirms a deploy actually succeeded; the crash alert
+ * fires only for genuine fatal errors (uncaughtException/unhandledRejection),
+ * never for a normal SIGTERM redeploy, so this doesn't turn into noise on
+ * every routine Railway restart.
+ */
+export async function sendSystemAlertDm(client: Client, title: string, message: string): Promise<void> {
+  const embed = new EmbedBuilder().setTitle(title).setColor(THEME_COLORS.darkOrange).setDescription(message.slice(0, 4096)).setTimestamp();
+  await sendEmbedToConfiguredUsers(client, embed);
+}

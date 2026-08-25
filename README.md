@@ -41,9 +41,17 @@ AI-powered Discord bot for Blitz of Battle: monitors community feedback, classif
 | `/community todo [window]` | Personal action queue |
 | `/community report [period]` | Daily/weekly digest on demand |
 | `/community refresh [window]` | Scan recent history for anything new |
-| `/community assign issue:<search> to:<name> [follow_up]` | Assign + flag an issue |
+| `/community assign issue:<search> to:<name> [follow_up]` | Assign + flag an issue (autocomplete on issue) |
+| `/community resolve issue:<search> status:<choice>` | Change an issue's status (autocomplete on issue) |
+| `/community faqgap [days]` | Recurring player questions not covered by the FAQ |
 | `/community scan channel:<any> [window]` | Scan any channel, even unwatched ones |
 | `/feedback list/stats/issues/export/backfill` | Search and manage feedback |
+
+## Reliability
+
+- **Crash alerting**: genuine fatal errors (uncaught exceptions/rejections) send a DM before the process exits. Routine Railway redeploys (SIGTERM) stay silent -- no false-alarm noise on every normal deploy. A "🟢 Bot Started" DM confirms every successful boot.
+- **Response-time breakdown by category**: the weekly report shows average reply time per category (e.g. payment issues vs. balance feedback), not one blended figure that hides which categories are actually slow.
+- **FAQ gap detection**: cross-references recurring player questions against a static snapshot of the FAQ's questions/keywords (`src/data/faqReference.json`, English only). Flags questions that don't match any FAQ entry well, clustering by recurring topic words. This is a snapshot, not a live connection -- re-export and regenerate if the FAQ changes.
 
 ## Integrations
 

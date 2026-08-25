@@ -1,0 +1,3553 @@
+[
+  {
+    "id": "585",
+    "category": "General & Getting Started",
+    "question": "What is Blitz of Battle?",
+    "keywords": [
+      "blitz",
+      "battle",
+      "fast-paced",
+      "2v2",
+      "mobile",
+      "moba",
+      "built",
+      "around",
+      "quick",
+      "matches",
+      "teamwork",
+      "skill"
+    ]
+  },
+  {
+    "id": "586",
+    "category": "General & Getting Started",
+    "question": "What kind of game is it?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "active ability",
+      "summoner spell",
+      "passives",
+      "relics",
+      "artifacts",
+      "skills",
+      "moves",
+      "kind",
+      "game",
+      "pick",
+      "hero",
+      "use",
+      "abilities",
+      "gear",
+      "spells"
+    ]
+  },
+  {
+    "id": "587",
+    "category": "General & Getting Started",
+    "question": "How long does a match take?",
+    "keywords": [
+      "long",
+      "match",
+      "take",
+      "around",
+      "minutes",
+      "less"
+    ]
+  },
+  {
+    "id": "588",
+    "category": "General & Getting Started",
+    "question": "Is it always 2v2?",
+    "keywords": [
+      "always",
+      "2v2",
+      "yes",
+      "now",
+      "3v3",
+      "1v1",
+      "formats",
+      "planned",
+      "future",
+      "updates"
+    ]
+  },
+  {
+    "id": "589",
+    "category": "General & Getting Started",
+    "question": "Does it support PvP?",
+    "keywords": [
+      "support",
+      "pvp",
+      "yes",
+      "matches",
+      "real-time"
+    ]
+  },
+  {
+    "id": "590",
+    "category": "General & Getting Started",
+    "question": "Do I need an internet connection?",
+    "keywords": [
+      "need",
+      "internet",
+      "connection",
+      "yes",
+      "blitz",
+      "battle",
+      "online-only",
+      "needs",
+      "stable"
+    ]
+  },
+  {
+    "id": "591",
+    "category": "General & Getting Started",
+    "question": "On which platforms is the game available, and is there cross-play?",
+    "keywords": [
+      "platforms",
+      "game",
+      "available",
+      "cross-play",
+      "play",
+      "accessible",
+      "ios",
+      "android",
+      "players",
+      "together",
+      "features",
+      "devices",
+      "support",
+      "users",
+      "share",
+      "servers",
+      "possible",
+      "friends"
+    ]
+  },
+  {
+    "id": "592",
+    "category": "General & Getting Started",
+    "question": "Where do I download it?",
+    "keywords": [
+      "download",
+      "app",
+      "store",
+      "ios",
+      "google",
+      "play",
+      "android"
+    ]
+  },
+  {
+    "id": "593",
+    "category": "General & Getting Started",
+    "question": "What are the device requirements?",
+    "keywords": [
+      "minimum specs",
+      "will it run",
+      "compatible device",
+      "device",
+      "requirements",
+      "ios",
+      "iphone",
+      "newer",
+      "later",
+      "android",
+      "3gb",
+      "ram",
+      "minimum",
+      "devices",
+      "2019",
+      "recommended"
+    ]
+  },
+  {
+    "id": "594",
+    "category": "General & Getting Started",
+    "question": "How do I control my hero?",
+    "keywords": [
+      "skills",
+      "moves",
+      "control",
+      "hero",
+      "move",
+      "joystick",
+      "left",
+      "attack",
+      "use",
+      "abilities",
+      "buttons",
+      "right"
+    ]
+  },
+  {
+    "id": "595",
+    "category": "General & Getting Started",
+    "question": "Is there a tutorial for new players?",
+    "keywords": [
+      "tutorial",
+      "new",
+      "players",
+      "yes",
+      "get",
+      "guided",
+      "introduced",
+      "mascot",
+      "masket"
+    ]
+  },
+  {
+    "id": "596",
+    "category": "General & Getting Started",
+    "question": "Can I play with friends?",
+    "keywords": [
+      "add friend",
+      "friend list",
+      "friend request",
+      "play",
+      "friends",
+      "yes",
+      "invite",
+      "together"
+    ]
+  },
+  {
+    "id": "597",
+    "category": "General & Getting Started",
+    "question": "How do I add friends?",
+    "keywords": [
+      "add friend",
+      "friend list",
+      "friend request",
+      "add",
+      "friends",
+      "open",
+      "menu",
+      "players",
+      "player",
+      "accept",
+      "requests"
+    ]
+  },
+  {
+    "id": "598",
+    "category": "General & Getting Started",
+    "question": "Can I view other players' profiles?",
+    "keywords": [
+      "view",
+      "players",
+      "profiles",
+      "yes",
+      "public",
+      "see",
+      "mini",
+      "profile"
+    ]
+  },
+  {
+    "id": "599",
+    "category": "General & Getting Started",
+    "question": "Is there a clan or guild system?",
+    "keywords": [
+      "clan",
+      "guild",
+      "system",
+      "yet",
+      "active",
+      "development",
+      "roadmap"
+    ]
+  },
+  {
+    "id": "600",
+    "category": "General & Getting Started",
+    "question": "Are bots ever in my matches?",
+    "keywords": [
+      "ai players",
+      "fake players",
+      "bot matches",
+      "bots",
+      "ever",
+      "matches",
+      "yes",
+      "mostly",
+      "face",
+      "real",
+      "players",
+      "fill",
+      "new",
+      "accounts",
+      "quiet",
+      "hours",
+      "stuck",
+      "waiting"
+    ]
+  },
+  {
+    "id": "601",
+    "category": "Heroes & Combat",
+    "question": "How many heroes are there?",
+    "keywords": [
+      "many",
+      "heroes",
+      "planned"
+    ]
+  },
+  {
+    "id": "602",
+    "category": "Heroes & Combat",
+    "question": "Which heroes are in the game?",
+    "keywords": [
+      "battle pass",
+      "season pass",
+      "pass",
+      "heroes",
+      "game",
+      "aranence",
+      "balec",
+      "cravius",
+      "drathos",
+      "halyx",
+      "currently",
+      "available",
+      "blitz",
+      "ilyana",
+      "ra-keth",
+      "ruthon",
+      "selara",
+      "vio"
+    ]
+  },
+  {
+    "id": "603",
+    "category": "Heroes & Combat",
+    "question": "What hero roles are there?",
+    "keywords": [
+      "hero",
+      "roles",
+      "fighter",
+      "mage",
+      "tank",
+      "assassin",
+      "marksman"
+    ]
+  },
+  {
+    "id": "604",
+    "category": "Heroes & Combat",
+    "question": "What abilities does each hero have?",
+    "keywords": [
+      "skills",
+      "moves",
+      "abilities",
+      "hero",
+      "four",
+      "basic",
+      "attack",
+      "two",
+      "active",
+      "one",
+      "ultimate"
+    ]
+  },
+  {
+    "id": "605",
+    "category": "Heroes & Combat",
+    "question": "Which heroes do new players start with?",
+    "keywords": [
+      "heroes",
+      "new",
+      "players",
+      "start",
+      "ilyana",
+      "cravius",
+      "balec",
+      "granted",
+      "tutorial"
+    ]
+  },
+  {
+    "id": "606",
+    "category": "Heroes & Combat",
+    "question": "Can I try a hero before unlocking them?",
+    "keywords": [
+      "try",
+      "hero",
+      "unlocking",
+      "them",
+      "yes",
+      "training",
+      "mode",
+      "lets",
+      "test",
+      "heroes",
+      "first"
+    ]
+  },
+  {
+    "id": "607",
+    "category": "Heroes & Combat",
+    "question": "Can I change my hero during a match?",
+    "keywords": [
+      "change",
+      "hero",
+      "match",
+      "locked",
+      "starts"
+    ]
+  },
+  {
+    "id": "608",
+    "category": "Heroes & Combat",
+    "question": "Can both teammates pick the same hero?",
+    "keywords": [
+      "teammates",
+      "pick",
+      "hero",
+      "picked",
+      "per",
+      "team"
+    ]
+  },
+  {
+    "id": "609",
+    "category": "Hero Unlocks & Progression",
+    "question": "How do I unlock heroes?",
+    "keywords": [
+      "hero shards",
+      "hero currency",
+      "gems",
+      "premium currency",
+      "unlock heroes",
+      "how to get heroes",
+      "hero progression",
+      "unlock",
+      "heroes",
+      "hero",
+      "road",
+      "using",
+      "stones",
+      "directly",
+      "emeralds"
+    ]
+  },
+  {
+    "id": "610",
+    "category": "Hero Unlocks & Progression",
+    "question": "What is the Hero Unlock Road?",
+    "keywords": [
+      "hero shards",
+      "hero currency",
+      "unlock heroes",
+      "how to get heroes",
+      "hero progression",
+      "hero",
+      "unlock",
+      "road",
+      "progression",
+      "track",
+      "unlocks",
+      "heroes",
+      "fixed",
+      "order",
+      "using",
+      "stones"
+    ]
+  },
+  {
+    "id": "611",
+    "category": "Hero Unlocks & Progression",
+    "question": "What is the current unlock order?",
+    "keywords": [
+      "current",
+      "unlock",
+      "order",
+      "aranence",
+      "ruthon",
+      "drathos",
+      "vio",
+      "z'aleth",
+      "ra-keth",
+      "selara",
+      "cravius",
+      "ilyana",
+      "balec",
+      "already",
+      "tutorial"
+    ]
+  },
+  {
+    "id": "612",
+    "category": "Hero Unlocks & Progression",
+    "question": "Can I change the unlock order?",
+    "keywords": [
+      "change",
+      "unlock",
+      "order",
+      "fixed"
+    ]
+  },
+  {
+    "id": "613",
+    "category": "Hero Unlocks & Progression",
+    "question": "What are Hero Stones?",
+    "keywords": [
+      "hero shards",
+      "hero currency",
+      "hero",
+      "stones",
+      "currency",
+      "used",
+      "unlock",
+      "heroes"
+    ]
+  },
+  {
+    "id": "614",
+    "category": "Hero Unlocks & Progression",
+    "question": "How do I earn Hero Stones?",
+    "keywords": [
+      "hero shards",
+      "hero currency",
+      "earn",
+      "hero",
+      "stones",
+      "mainly",
+      "gem",
+      "road"
+    ]
+  },
+  {
+    "id": "615",
+    "category": "Hero Unlocks & Progression",
+    "question": "Can I unlock heroes directly with Emeralds?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "unlock",
+      "heroes",
+      "directly",
+      "emeralds",
+      "yes"
+    ]
+  },
+  {
+    "id": "616",
+    "category": "Hero Unlocks & Progression",
+    "question": "Are Hero Stones refundable?",
+    "keywords": [
+      "hero shards",
+      "hero currency",
+      "hero",
+      "stones",
+      "refundable",
+      "cannot",
+      "refunded",
+      "transferred"
+    ]
+  },
+  {
+    "id": "617",
+    "category": "Hero Unlocks & Progression",
+    "question": "Are heroes easier to unlock now?",
+    "keywords": [
+      "heroes",
+      "easier",
+      "unlock",
+      "now",
+      "yes",
+      "unlocking",
+      "faster",
+      "smoother"
+    ]
+  },
+  {
+    "id": "618",
+    "category": "Hero Unlocks & Progression",
+    "question": "What is a Hero Road?",
+    "keywords": [
+      "hero",
+      "road",
+      "every",
+      "progression",
+      "hero-specific",
+      "rewards"
+    ]
+  },
+  {
+    "id": "619",
+    "category": "Hero Unlocks & Progression",
+    "question": "Do Hero Roads have free and paid tracks?",
+    "keywords": [
+      "hero battle pass",
+      "hero",
+      "roads",
+      "free",
+      "paid",
+      "tracks",
+      "yes",
+      "road",
+      "pass",
+      "track",
+      "plus"
+    ]
+  },
+  {
+    "id": "620",
+    "category": "Hero Unlocks & Progression",
+    "question": "Can I progress a Hero Road without owning the hero?",
+    "keywords": [
+      "progress",
+      "hero",
+      "road",
+      "without",
+      "owning",
+      "unlock",
+      "first"
+    ]
+  },
+  {
+    "id": "621",
+    "category": "Hero Unlocks & Progression",
+    "question": "How do I progress a Hero Road?",
+    "keywords": [
+      "progress",
+      "hero",
+      "road",
+      "playing",
+      "matches"
+    ]
+  },
+  {
+    "id": "622",
+    "category": "Hero Unlocks & Progression",
+    "question": "What rewards are on Hero Roads?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "coins",
+      "soft currency",
+      "rewards",
+      "hero",
+      "roads",
+      "gold",
+      "emeralds",
+      "potions",
+      "avatars",
+      "animated",
+      "emotes",
+      "skins",
+      "tied"
+    ]
+  },
+  {
+    "id": "623",
+    "category": "Hero Unlocks & Progression",
+    "question": "Does every Hero Road end with a skin?",
+    "keywords": [
+      "every",
+      "hero",
+      "road",
+      "end",
+      "skin",
+      "yes",
+      "one",
+      "currently",
+      "ends",
+      "golden"
+    ]
+  },
+  {
+    "id": "624",
+    "category": "Hero Unlocks & Progression",
+    "question": "Are Hero Roads permanent?",
+    "keywords": [
+      "hero",
+      "roads",
+      "permanent",
+      "yes",
+      "expire",
+      "completed",
+      "time"
+    ]
+  },
+  {
+    "id": "625",
+    "category": "Hero Unlocks & Progression",
+    "question": "Can I buy the Hero Pass with Emeralds?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "hero battle pass",
+      "buy",
+      "hero",
+      "pass",
+      "emeralds",
+      "plus",
+      "real-money",
+      "purchases"
+    ]
+  },
+  {
+    "id": "626",
+    "category": "Hero Unlocks & Progression",
+    "question": "Will future heroes get Hero Roads?",
+    "keywords": [
+      "future",
+      "heroes",
+      "get",
+      "hero",
+      "roads",
+      "yes"
+    ]
+  },
+  {
+    "id": "627",
+    "category": "Hero Unlocks & Progression",
+    "question": "What is the maximum hero level?",
+    "keywords": [
+      "maximum",
+      "hero",
+      "level"
+    ]
+  },
+  {
+    "id": "628",
+    "category": "Hero Unlocks & Progression",
+    "question": "What are Hero Potions for?",
+    "keywords": [
+      "hero",
+      "potions",
+      "leveling",
+      "heroes",
+      "consumed",
+      "used"
+    ]
+  },
+  {
+    "id": "629",
+    "category": "Hero Unlocks & Progression",
+    "question": "How do I upgrade a hero?",
+    "keywords": [
+      "coins",
+      "soft currency",
+      "upgrade",
+      "hero",
+      "gold",
+      "potions"
+    ]
+  },
+  {
+    "id": "630",
+    "category": "Hero Unlocks & Progression",
+    "question": "What does upgrading a hero do?",
+    "keywords": [
+      "upgrading",
+      "hero",
+      "raises",
+      "hero's",
+      "level",
+      "unlocks",
+      "stronger",
+      "upgrades",
+      "improves",
+      "effectiveness"
+    ]
+  },
+  {
+    "id": "631",
+    "category": "Hero Unlocks & Progression",
+    "question": "Are skills upgraded automatically?",
+    "keywords": [
+      "skills",
+      "upgraded",
+      "automatically",
+      "skill",
+      "upgrades",
+      "unlocked",
+      "purchased",
+      "manually"
+    ]
+  },
+  {
+    "id": "632",
+    "category": "Hero Unlocks & Progression",
+    "question": "What if I am short on Hero Potions?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "short",
+      "hero",
+      "potions",
+      "upgrading",
+      "tap",
+      "upgrade",
+      "game",
+      "offer",
+      "convert",
+      "emeralds",
+      "cover",
+      "missing",
+      "amount"
+    ]
+  },
+  {
+    "id": "633",
+    "category": "Gear, Spells & Ancients",
+    "question": "What is Gear?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "gear",
+      "improves",
+      "stats"
+    ]
+  },
+  {
+    "id": "634",
+    "category": "Gear, Spells & Ancients",
+    "question": "What are Spells?",
+    "keywords": [
+      "active ability",
+      "summoner spell",
+      "skills",
+      "moves",
+      "spells",
+      "active",
+      "abilities",
+      "equip",
+      "match"
+    ]
+  },
+  {
+    "id": "635",
+    "category": "Gear, Spells & Ancients",
+    "question": "What are Ancients?",
+    "keywords": [
+      "passives",
+      "relics",
+      "artifacts",
+      "ancients",
+      "passive",
+      "enhancements",
+      "modify",
+      "gameplay",
+      "hero",
+      "performance"
+    ]
+  },
+  {
+    "id": "636",
+    "category": "Gear, Spells & Ancients",
+    "question": "Can Spells and Ancients be upgraded?",
+    "keywords": [
+      "active ability",
+      "summoner spell",
+      "passives",
+      "relics",
+      "artifacts",
+      "spells",
+      "ancients",
+      "upgraded",
+      "yes",
+      "evolve",
+      "stronger",
+      "versions",
+      "added",
+      "effects"
+    ]
+  },
+  {
+    "id": "637",
+    "category": "Gear, Spells & Ancients",
+    "question": "Are builds customizable?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "active ability",
+      "summoner spell",
+      "passives",
+      "relics",
+      "artifacts",
+      "builds",
+      "customizable",
+      "yes",
+      "mix",
+      "gear",
+      "spells",
+      "ancients",
+      "create",
+      "playstyle"
+    ]
+  },
+  {
+    "id": "638",
+    "category": "Gear, Spells & Ancients",
+    "question": "Is Gear, Spell, and Ancient progression shared between heroes?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "gear",
+      "spell",
+      "ancient",
+      "progression",
+      "shared",
+      "heroes",
+      "yes",
+      "across",
+      "grind",
+      "less",
+      "enjoy"
+    ]
+  },
+  {
+    "id": "639",
+    "category": "Gear, Spells & Ancients",
+    "question": "What happens to excess fragments?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "prestige",
+      "rep",
+      "happens",
+      "excess",
+      "fragments",
+      "extra",
+      "gear",
+      "spell",
+      "ancient",
+      "convert",
+      "reputation"
+    ]
+  },
+  {
+    "id": "640",
+    "category": "Gear, Spells & Ancients",
+    "question": "What are some example Spells?",
+    "keywords": [
+      "active ability",
+      "summoner spell",
+      "example",
+      "spells",
+      "void",
+      "echo",
+      "trap",
+      "crimson",
+      "moon",
+      "regeneration"
+    ]
+  },
+  {
+    "id": "641",
+    "category": "Gear, Spells & Ancients",
+    "question": "What are some example Ancients?",
+    "keywords": [
+      "passives",
+      "relics",
+      "artifacts",
+      "example",
+      "ancients",
+      "heartpiercer",
+      "drive",
+      "bomb",
+      "skeletor",
+      "resurrection",
+      "firestarter",
+      "arcflare",
+      "sequence",
+      "chrono",
+      "core",
+      "enduring",
+      "fury",
+      "vengeance"
+    ]
+  },
+  {
+    "id": "642",
+    "category": "Game Modes & Matchmaking",
+    "question": "What game modes are available?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "push mode",
+      "lane mode",
+      "control point mode",
+      "zone mode",
+      "domination",
+      "game",
+      "modes",
+      "available",
+      "action",
+      "zone",
+      "turret",
+      "blast",
+      "ranked",
+      "custom"
+    ]
+  },
+  {
+    "id": "643",
+    "category": "Game Modes & Matchmaking",
+    "question": "How does Action Zone work?",
+    "keywords": [
+      "control point mode",
+      "zone mode",
+      "domination",
+      "action",
+      "zone",
+      "work",
+      "capture",
+      "central",
+      "reach",
+      "100",
+      "dominance",
+      "twice",
+      "win"
+    ]
+  },
+  {
+    "id": "644",
+    "category": "Game Modes & Matchmaking",
+    "question": "Do kills decide Action Zone?",
+    "keywords": [
+      "coins",
+      "soft currency",
+      "control point mode",
+      "zone mode",
+      "domination",
+      "kills",
+      "decide",
+      "action",
+      "zone",
+      "help",
+      "control",
+      "earn",
+      "gold",
+      "match"
+    ]
+  },
+  {
+    "id": "645",
+    "category": "Game Modes & Matchmaking",
+    "question": "How does Turret Blast work?",
+    "keywords": [
+      "push mode",
+      "lane mode",
+      "turret",
+      "blast",
+      "work",
+      "destroy",
+      "enemy",
+      "defending",
+      "using",
+      "creeps",
+      "objectives"
+    ]
+  },
+  {
+    "id": "646",
+    "category": "Game Modes & Matchmaking",
+    "question": "What are creeps?",
+    "keywords": [
+      "creeps",
+      "units",
+      "push",
+      "lanes",
+      "damage",
+      "turrets"
+    ]
+  },
+  {
+    "id": "647",
+    "category": "Game Modes & Matchmaking",
+    "question": "What are minions?",
+    "keywords": [
+      "minions",
+      "units",
+      "hero",
+      "summons",
+      "match",
+      "example",
+      "z'aleth",
+      "them",
+      "death's",
+      "construct",
+      "minion-summoning",
+      "heroes",
+      "added",
+      "roster",
+      "grows"
+    ]
+  },
+  {
+    "id": "648",
+    "category": "Game Modes & Matchmaking",
+    "question": "What is the Giant in Turret Blast?",
+    "keywords": [
+      "push mode",
+      "lane mode",
+      "giant",
+      "turret",
+      "blast",
+      "powerful",
+      "neutral",
+      "monster",
+      "joins",
+      "whichever",
+      "team",
+      "defeats",
+      "creeps",
+      "respawn",
+      "often",
+      "respawns",
+      "longer",
+      "timer"
+    ]
+  },
+  {
+    "id": "649",
+    "category": "Game Modes & Matchmaking",
+    "question": "Can turrets be healed?",
+    "keywords": [
+      "turrets",
+      "healed",
+      "turret",
+      "damage",
+      "permanent"
+    ]
+  },
+  {
+    "id": "650",
+    "category": "Game Modes & Matchmaking",
+    "question": "What are power-ups?",
+    "keywords": [
+      "power-ups",
+      "energy",
+      "orbs",
+      "charge",
+      "ultimate",
+      "faster"
+    ]
+  },
+  {
+    "id": "651",
+    "category": "Ranked & Competitive",
+    "question": "How do I unlock Ranked?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "unlock",
+      "ranked",
+      "earn",
+      "100",
+      "gems",
+      "permanently",
+      "available"
+    ]
+  },
+  {
+    "id": "652",
+    "category": "Ranked & Competitive",
+    "question": "What is the difference between Ranked and Casual?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "difference",
+      "ranked",
+      "casual",
+      "practice",
+      "affects",
+      "progression"
+    ]
+  },
+  {
+    "id": "653",
+    "category": "Ranked & Competitive",
+    "question": "What are the rank tiers?",
+    "keywords": [
+      "coins",
+      "soft currency",
+      "rank",
+      "tiers",
+      "scholar",
+      "bronze",
+      "silver",
+      "gold",
+      "platinum",
+      "diamond",
+      "mythic",
+      "legend",
+      "immortal"
+    ]
+  },
+  {
+    "id": "654",
+    "category": "Ranked & Competitive",
+    "question": "What are Ranked Points?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "rp",
+      "rank points",
+      "elo",
+      "mmr",
+      "ranked",
+      "points",
+      "gain",
+      "win",
+      "lose",
+      "loss",
+      "finishing",
+      "near",
+      "top",
+      "ranking"
+    ]
+  },
+  {
+    "id": "655",
+    "category": "Ranked & Competitive",
+    "question": "How long is a Ranked season?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "season rewards",
+      "leaderboard rewards",
+      "long",
+      "ranked",
+      "season",
+      "four",
+      "days",
+      "end",
+      "leaderboard",
+      "resets",
+      "top",
+      "players",
+      "promoted",
+      "two"
+    ]
+  },
+  {
+    "id": "656",
+    "category": "Ranked & Competitive",
+    "question": "What are Trophies?",
+    "keywords": [
+      "season rewards",
+      "leaderboard rewards",
+      "trophies",
+      "end-of-season",
+      "prestige",
+      "rewards",
+      "shown",
+      "profile",
+      "top",
+      "two",
+      "players",
+      "earn",
+      "them",
+      "gameplay",
+      "effect"
+    ]
+  },
+  {
+    "id": "657",
+    "category": "Ranked & Competitive",
+    "question": "What is the Ranked Road?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "rp",
+      "rank points",
+      "elo",
+      "mmr",
+      "coins",
+      "soft currency",
+      "loot boxes",
+      "crates",
+      "ranked",
+      "road",
+      "reward",
+      "track",
+      "tied",
+      "current"
+    ]
+  },
+  {
+    "id": "658",
+    "category": "Ranked & Competitive",
+    "question": "How are Stars earned?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "stars",
+      "earned",
+      "winning",
+      "matches",
+      "completing",
+      "quests",
+      "defeating",
+      "enemies",
+      "earning",
+      "mvp",
+      "ranked",
+      "normal"
+    ]
+  },
+  {
+    "id": "659",
+    "category": "Ranked & Competitive",
+    "question": "Can I lose Stars?",
+    "keywords": [
+      "lose",
+      "stars",
+      "cannot",
+      "lost",
+      "loss",
+      "simply",
+      "grants",
+      "none"
+    ]
+  },
+  {
+    "id": "660",
+    "category": "Ranked & Competitive",
+    "question": "How do Star chests work?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "loot boxes",
+      "crates",
+      "star chest",
+      "star rewards",
+      "star",
+      "chests",
+      "work",
+      "every",
+      "stars",
+      "grants",
+      "chest",
+      "resource",
+      "gear",
+      "counter",
+      "resets"
+    ]
+  },
+  {
+    "id": "661",
+    "category": "Game Modes & Matchmaking",
+    "question": "Does matchmaking consider progression?",
+    "keywords": [
+      "mm",
+      "matchmaking system",
+      "unfair matches",
+      "gear gap",
+      "nerf gun vs tanks",
+      "matchmaking",
+      "consider",
+      "progression",
+      "yes",
+      "factors",
+      "keep",
+      "matches",
+      "fair",
+      "feel",
+      "tougher",
+      "others"
+    ]
+  },
+  {
+    "id": "662",
+    "category": "Game Modes & Matchmaking",
+    "question": "What happens if someone disconnects?",
+    "keywords": [
+      "lag",
+      "disconnected",
+      "connection issues",
+      "stuck loading",
+      "loading failed",
+      "freeze",
+      "frozen",
+      "can't connect",
+      "cant connect",
+      "server issues",
+      "ping",
+      "happens",
+      "someone",
+      "disconnects",
+      "disconnect",
+      "match",
+      "counts",
+      "loss"
+    ]
+  },
+  {
+    "id": "663",
+    "category": "Game Modes & Matchmaking",
+    "question": "Is AFK or leaving punished?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "mm",
+      "matchmaking system",
+      "unfair matches",
+      "gear gap",
+      "nerf gun vs tanks",
+      "afk",
+      "leaving",
+      "punished",
+      "yes",
+      "repeated",
+      "disruptive",
+      "play",
+      "bring",
+      "matchmaking"
+    ]
+  },
+  {
+    "id": "664",
+    "category": "Progression & Rewards",
+    "question": "What are Red Gems?",
+    "keywords": [
+      "red",
+      "gems",
+      "main",
+      "account-progression",
+      "earned",
+      "playing",
+      "matches",
+      "mode"
+    ]
+  },
+  {
+    "id": "665",
+    "category": "Progression & Rewards",
+    "question": "What is the Gem Road?",
+    "keywords": [
+      "hero shards",
+      "hero currency",
+      "gems",
+      "premium currency",
+      "coins",
+      "soft currency",
+      "loot boxes",
+      "crates",
+      "gem",
+      "road",
+      "account-progression",
+      "track",
+      "rewards",
+      "earn",
+      "red",
+      "including",
+      "hero",
+      "stones"
+    ]
+  },
+  {
+    "id": "666",
+    "category": "Progression & Rewards",
+    "question": "Can I earn Emeralds for free?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "earn",
+      "emeralds",
+      "free",
+      "yes",
+      "progression",
+      "rewards",
+      "events"
+    ]
+  },
+  {
+    "id": "667",
+    "category": "Progression & Rewards",
+    "question": "What is Reputation?",
+    "keywords": [
+      "prestige",
+      "rep",
+      "reputation",
+      "system",
+      "shows",
+      "long-term",
+      "dedication",
+      "gives",
+      "gameplay",
+      "advantage"
+    ]
+  },
+  {
+    "id": "668",
+    "category": "Progression & Rewards",
+    "question": "How do I earn Reputation?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "prestige",
+      "rep",
+      "earn",
+      "reputation",
+      "increases",
+      "receive",
+      "excess",
+      "materials",
+      "maxing",
+      "gear",
+      "spell",
+      "ancient",
+      "progression"
+    ]
+  },
+  {
+    "id": "669",
+    "category": "Progression & Rewards",
+    "question": "Is there a maximum Reputation level?",
+    "keywords": [
+      "prestige",
+      "rep",
+      "maximum",
+      "reputation",
+      "level",
+      "currently"
+    ]
+  },
+  {
+    "id": "670",
+    "category": "Progression & Rewards",
+    "question": "Will Reputation get new features later?",
+    "keywords": [
+      "prestige",
+      "rep",
+      "reputation",
+      "get",
+      "new",
+      "features",
+      "later",
+      "yes",
+      "plan",
+      "tie",
+      "achievements",
+      "progression",
+      "systems",
+      "future",
+      "updates"
+    ]
+  },
+  {
+    "id": "671",
+    "category": "Progression & Rewards",
+    "question": "How do Daily Rewards work?",
+    "keywords": [
+      "daily login",
+      "login bonus",
+      "daily bonus",
+      "daily",
+      "rewards",
+      "work",
+      "8-day",
+      "cycle",
+      "starts",
+      "install",
+      "day",
+      "log",
+      "claim",
+      "day's",
+      "reward"
+    ]
+  },
+  {
+    "id": "672",
+    "category": "Progression & Rewards",
+    "question": "What if I skip a day?",
+    "keywords": [
+      "log in",
+      "sign in",
+      "can't login",
+      "cant log in",
+      "skip",
+      "day",
+      "miss",
+      "day's",
+      "reward",
+      "cannot",
+      "claim",
+      "later",
+      "next",
+      "login",
+      "gives",
+      "example",
+      "log",
+      "get"
+    ]
+  },
+  {
+    "id": "673",
+    "category": "Progression & Rewards",
+    "question": "What is included in Daily Rewards?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "coins",
+      "soft currency",
+      "daily login",
+      "login bonus",
+      "daily bonus",
+      "loot boxes",
+      "crates",
+      "included",
+      "daily",
+      "rewards",
+      "gold",
+      "emeralds",
+      "hero",
+      "potions",
+      "chests",
+      "progression"
+    ]
+  },
+  {
+    "id": "674",
+    "category": "Progression & Rewards",
+    "question": "What is Gold used for?",
+    "keywords": [
+      "coins",
+      "soft currency",
+      "items",
+      "equipment",
+      "build",
+      "gold",
+      "used",
+      "hero",
+      "gear",
+      "spell",
+      "ancient",
+      "upgrades"
+    ]
+  },
+  {
+    "id": "675",
+    "category": "Progression & Rewards",
+    "question": "What are Emeralds used for?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "battle pass",
+      "season pass",
+      "pass",
+      "wheel",
+      "gacha",
+      "spin",
+      "wheel of luck",
+      "emeralds",
+      "used",
+      "hero",
+      "unlocks",
+      "lucky",
+      "shop",
+      "purchases",
+      "blitz",
+      "levels"
+    ]
+  },
+  {
+    "id": "676",
+    "category": "Progression & Rewards",
+    "question": "What chests are there?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "loot boxes",
+      "crates",
+      "chests",
+      "gear",
+      "spell",
+      "ancient",
+      "resource",
+      "several",
+      "sizes"
+    ]
+  },
+  {
+    "id": "677",
+    "category": "Blitz Pass & Events",
+    "question": "What is the Blitz Pass?",
+    "keywords": [
+      "battle pass",
+      "season pass",
+      "pass",
+      "blitz",
+      "seasonal",
+      "reward",
+      "track",
+      "three",
+      "tiers",
+      "free",
+      "plus",
+      "paid",
+      "maximum",
+      "level"
+    ]
+  },
+  {
+    "id": "678",
+    "category": "Blitz Pass & Events",
+    "question": "Are free rewards available all the way to level 60?",
+    "keywords": [
+      "free",
+      "rewards",
+      "available",
+      "way",
+      "level",
+      "yes",
+      "pass",
+      "track"
+    ]
+  },
+  {
+    "id": "679",
+    "category": "Blitz Pass & Events",
+    "question": "What rewards are in the Blitz Pass?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "coins",
+      "soft currency",
+      "battle pass",
+      "season pass",
+      "pass",
+      "rewards",
+      "blitz",
+      "heroes",
+      "including",
+      "halyx",
+      "gold",
+      "emeralds",
+      "hero",
+      "potions",
+      "cosmetics",
+      "emotes"
+    ]
+  },
+  {
+    "id": "680",
+    "category": "Blitz Pass & Events",
+    "question": "Can I buy Blitz Pass levels?",
+    "keywords": [
+      "battle pass",
+      "season pass",
+      "pass",
+      "buy",
+      "blitz",
+      "levels",
+      "yes"
+    ]
+  },
+  {
+    "id": "681",
+    "category": "Blitz Pass & Events",
+    "question": "Can I buy the Blitz Pass with Emeralds?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "battle pass",
+      "season pass",
+      "pass",
+      "buy",
+      "blitz",
+      "emeralds",
+      "real-money",
+      "purchase"
+    ]
+  },
+  {
+    "id": "682",
+    "category": "Progression & Rewards",
+    "question": "What is Lucky Spin?",
+    "keywords": [
+      "wheel",
+      "gacha",
+      "spin",
+      "wheel of luck",
+      "lucky",
+      "redesigned",
+      "version",
+      "old",
+      "luck"
+    ]
+  },
+  {
+    "id": "683",
+    "category": "Progression & Rewards",
+    "question": "How does Lucky Spin work?",
+    "keywords": [
+      "gems",
+      "premium currency",
+      "coins",
+      "soft currency",
+      "wheel",
+      "gacha",
+      "spin",
+      "wheel of luck",
+      "lucky",
+      "work",
+      "pay",
+      "emeralds",
+      "multiplies",
+      "gold",
+      "x10",
+      "lands",
+      "lose"
+    ]
+  },
+  {
+    "id": "684",
+    "category": "Progression & Rewards",
+    "question": "What can I win on Lucky Spin?",
+    "keywords": [
+      "coins",
+      "soft currency",
+      "wheel",
+      "gacha",
+      "spin",
+      "wheel of luck",
+      "win",
+      "lucky",
+      "gold",
+      "multiplier",
+      "decides",
+      "much",
+      "lose",
+      "result",
+      "gives",
+      "nothing"
+    ]
+  },
+  {
+    "id": "685",
+    "category": "Progression & Rewards",
+    "question": "Can I see the odds?",
+    "keywords": [
+      "see",
+      "odds",
+      "yes",
+      "reward",
+      "rates",
+      "shown",
+      "in-game"
+    ]
+  },
+  {
+    "id": "686",
+    "category": "Progression & Rewards",
+    "question": "Do skins or avatars affect gameplay?",
+    "keywords": [
+      "skins",
+      "avatars",
+      "affect",
+      "gameplay",
+      "cosmetics",
+      "visual",
+      "effect",
+      "balance"
+    ]
+  },
+  {
+    "id": "687",
+    "category": "Progression & Rewards",
+    "question": "How do I get skins?",
+    "keywords": [
+      "get",
+      "skins",
+      "hero",
+      "roads",
+      "progression",
+      "offers"
+    ]
+  },
+  {
+    "id": "688",
+    "category": "Progression & Rewards",
+    "question": "Are avatars free or paid?",
+    "keywords": [
+      "hero battle pass",
+      "avatars",
+      "free",
+      "paid",
+      "common",
+      "hero",
+      "animated",
+      "hero-dedicated",
+      "limited",
+      "mostly",
+      "come",
+      "pass"
+    ]
+  },
+  {
+    "id": "689",
+    "category": "Progression & Rewards",
+    "question": "Can I customize emotes?",
+    "keywords": [
+      "customize",
+      "emotes",
+      "yes",
+      "cosmetics",
+      "menu",
+      "tied",
+      "specific",
+      "heroes"
+    ]
+  },
+  {
+    "id": "690",
+    "category": "Progression & Rewards",
+    "question": "Will more cosmetics be added?",
+    "keywords": [
+      "cosmetics",
+      "added",
+      "yes",
+      "including",
+      "skins",
+      "emotes",
+      "avatars",
+      "animated"
+    ]
+  },
+  {
+    "id": "691",
+    "category": "Progression & Rewards",
+    "question": "What is the Mini Profile?",
+    "keywords": [
+      "mini",
+      "profile",
+      "quick",
+      "view",
+      "another",
+      "player's",
+      "account"
+    ]
+  },
+  {
+    "id": "692",
+    "category": "Progression & Rewards",
+    "question": "How do I open a Mini Profile?",
+    "keywords": [
+      "open",
+      "mini",
+      "profile",
+      "tap",
+      "player's",
+      "avatar",
+      "leaderboards",
+      "match",
+      "scoreboards",
+      "chats",
+      "supported",
+      "menus"
+    ]
+  },
+  {
+    "id": "693",
+    "category": "Progression & Rewards",
+    "question": "What does the Mini Profile show?",
+    "keywords": [
+      "prestige",
+      "rep",
+      "mini",
+      "profile",
+      "show",
+      "avatar",
+      "favorite",
+      "hero",
+      "rank",
+      "reputation",
+      "match",
+      "count",
+      "win",
+      "rate",
+      "trophy",
+      "account",
+      "age",
+      "progress"
+    ]
+  },
+  {
+    "id": "694",
+    "category": "Blitz Pass & Events",
+    "question": "What is the Live Ops screen?",
+    "keywords": [
+      "live",
+      "ops",
+      "screen",
+      "shows",
+      "active",
+      "events",
+      "announcements",
+      "featured",
+      "activities"
+    ]
+  },
+  {
+    "id": "695",
+    "category": "Blitz Pass & Events",
+    "question": "Are events time-limited?",
+    "keywords": [
+      "events",
+      "time-limited",
+      "yes",
+      "rotate",
+      "run",
+      "limited",
+      "time"
+    ]
+  },
+  {
+    "id": "696",
+    "category": "Blitz Pass & Events",
+    "question": "Can events affect rewards?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "events",
+      "affect",
+      "rewards",
+      "yes",
+      "temporarily",
+      "boost",
+      "progression",
+      "ranked"
+    ]
+  },
+  {
+    "id": "697",
+    "category": "Blitz Pass & Events",
+    "question": "What are Ranked Boosters?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "ranked",
+      "boosters",
+      "temporarily",
+      "increase",
+      "point",
+      "gains",
+      "stack",
+      "extend",
+      "duration",
+      "bonus",
+      "ends",
+      "timer",
+      "runs"
+    ]
+  },
+  {
+    "id": "698",
+    "category": "Blitz Pass & Events",
+    "question": "Are community events shown in-game?",
+    "keywords": [
+      "community",
+      "events",
+      "shown",
+      "in-game",
+      "yes",
+      "discord",
+      "appear",
+      "live",
+      "ops",
+      "require",
+      "taking",
+      "part",
+      "official"
+    ]
+  },
+  {
+    "id": "699",
+    "category": "Blitz Pass & Events",
+    "question": "How are community event rewards delivered?",
+    "keywords": [
+      "community",
+      "event",
+      "rewards",
+      "delivered",
+      "usually",
+      "in-game",
+      "inbox",
+      "ends",
+      "events",
+      "ask",
+      "screenshots",
+      "match-history",
+      "proof"
+    ]
+  },
+  {
+    "id": "700",
+    "category": "Store & Purchases",
+    "question": "How does the Shop work?",
+    "keywords": [
+      "loot boxes",
+      "crates",
+      "shop",
+      "work",
+      "offers",
+      "heroes",
+      "currency",
+      "bundles",
+      "chests",
+      "daily",
+      "deals"
+    ]
+  },
+  {
+    "id": "701",
+    "category": "Store & Purchases",
+    "question": "What are Max Deals?",
+    "keywords": [
+      "max",
+      "deals",
+      "premium",
+      "bundles",
+      "instantly",
+      "specific",
+      "upgrade"
+    ]
+  },
+  {
+    "id": "702",
+    "category": "Store & Purchases",
+    "question": "Can I buy the Hero Pass directly?",
+    "keywords": [
+      "hero battle pass",
+      "buy",
+      "hero",
+      "pass",
+      "directly",
+      "yes",
+      "direct",
+      "real-money",
+      "purchase"
+    ]
+  },
+  {
+    "id": "703",
+    "category": "Store & Purchases",
+    "question": "Are Hero Unlock offers still available?",
+    "keywords": [
+      "hero",
+      "unlock",
+      "offers",
+      "still",
+      "available",
+      "yes"
+    ]
+  },
+  {
+    "id": "704",
+    "category": "Store & Purchases",
+    "question": "Were Starter Packs updated?",
+    "keywords": [
+      "starter",
+      "packs",
+      "updated",
+      "yes",
+      "match",
+      "new",
+      "progression",
+      "systems"
+    ]
+  },
+  {
+    "id": "705",
+    "category": "Account & Security",
+    "question": "How do I save my progress?",
+    "keywords": [
+      "save",
+      "progress",
+      "link",
+      "account",
+      "settings"
+    ]
+  },
+  {
+    "id": "706",
+    "category": "Account & Security",
+    "question": "What login methods are supported?",
+    "keywords": [
+      "log in",
+      "sign in",
+      "can't login",
+      "cant log in",
+      "login",
+      "methods",
+      "supported",
+      "guest",
+      "google",
+      "apple"
+    ]
+  },
+  {
+    "id": "707",
+    "category": "Account & Security",
+    "question": "What happens if I play as a Guest?",
+    "keywords": [
+      "happens",
+      "play",
+      "guest",
+      "progress",
+      "stays",
+      "device",
+      "link",
+      "account"
+    ]
+  },
+  {
+    "id": "708",
+    "category": "Account & Security",
+    "question": "Can I switch devices without losing progress?",
+    "keywords": [
+      "linked account",
+      "cross device",
+      "cross-platform",
+      "lost account",
+      "recover account",
+      "switch",
+      "devices",
+      "without",
+      "losing",
+      "progress",
+      "yes",
+      "account",
+      "linked"
+    ]
+  },
+  {
+    "id": "709",
+    "category": "Account & Security",
+    "question": "How do I recover a lost account?",
+    "keywords": [
+      "linked account",
+      "cross device",
+      "cross-platform",
+      "lost account",
+      "recover account",
+      "recover",
+      "lost",
+      "account",
+      "log",
+      "linked",
+      "contact",
+      "support"
+    ]
+  },
+  {
+    "id": "710",
+    "category": "Account & Security",
+    "question": "Can I unlink my account?",
+    "keywords": [
+      "unlink",
+      "account",
+      "yes",
+      "support's",
+      "help"
+    ]
+  },
+  {
+    "id": "711",
+    "category": "Account & Security",
+    "question": "What data is saved to my account?",
+    "keywords": [
+      "data",
+      "saved",
+      "account",
+      "heroes",
+      "resources",
+      "purchases",
+      "rank",
+      "progress"
+    ]
+  },
+  {
+    "id": "712",
+    "category": "Account & Security",
+    "question": "Can I have multiple accounts on one device?",
+    "keywords": [
+      "multiple",
+      "accounts",
+      "one",
+      "device",
+      "active",
+      "account",
+      "per"
+    ]
+  },
+  {
+    "id": "713",
+    "category": "Account & Security",
+    "question": "Can I change my player name?",
+    "keywords": [
+      "change",
+      "player",
+      "name",
+      "yes",
+      "first",
+      "free",
+      "open",
+      "menu",
+      "support"
+    ]
+  },
+  {
+    "id": "714",
+    "category": "Account & Security",
+    "question": "How do I delete my account?",
+    "keywords": [
+      "remove account",
+      "close account",
+      "delete",
+      "account",
+      "contact",
+      "support",
+      "deletion",
+      "permanent"
+    ]
+  },
+  {
+    "id": "715",
+    "category": "Account & Security",
+    "question": "What happens if my account is banned?",
+    "keywords": [
+      "happens",
+      "account",
+      "banned",
+      "bans",
+      "applied",
+      "rule",
+      "violations",
+      "appeal",
+      "support"
+    ]
+  },
+  {
+    "id": "716",
+    "category": "Account & Security",
+    "question": "Is there an age requirement?",
+    "keywords": [
+      "age",
+      "requirement",
+      "yes",
+      "players",
+      "older"
+    ]
+  },
+  {
+    "id": "717",
+    "category": "Account & Security",
+    "question": "How is my data protected?",
+    "keywords": [
+      "data",
+      "protected",
+      "stored",
+      "securely",
+      "privacy",
+      "policy"
+    ]
+  },
+  {
+    "id": "718",
+    "category": "Technical Support",
+    "question": "How do I contact support?",
+    "keywords": [
+      "contact",
+      "support",
+      "tap",
+      "menu",
+      "choose",
+      "category",
+      "bug",
+      "reports",
+      "settings",
+      "report",
+      "issue"
+    ]
+  },
+  {
+    "id": "719",
+    "category": "Technical Support",
+    "question": "Can I get a refund?",
+    "keywords": [
+      "get my money back",
+      "wrong purchase",
+      "accidental purchase",
+      "didn't receive item",
+      "missing purchase",
+      "didnt receive",
+      "get",
+      "refund",
+      "contact",
+      "support",
+      "purchase",
+      "issues",
+      "including",
+      "accidental",
+      "purchases",
+      "wrong",
+      "hero",
+      "road"
+    ]
+  },
+  {
+    "id": "720",
+    "category": "Technical Support",
+    "question": "Where are compensation rewards delivered?",
+    "keywords": [
+      "compensation",
+      "rewards",
+      "delivered",
+      "in-game",
+      "inbox"
+    ]
+  },
+  {
+    "id": "721",
+    "category": "Technical Support",
+    "question": "Where can I find patch notes?",
+    "keywords": [
+      "find",
+      "patch",
+      "notes",
+      "official",
+      "discord",
+      "store",
+      "update",
+      "pages"
+    ]
+  },
+  {
+    "id": "722",
+    "category": "Technical Support",
+    "question": "How do I update the game?",
+    "keywords": [
+      "update",
+      "game",
+      "app",
+      "store",
+      "google",
+      "play"
+    ]
+  },
+  {
+    "id": "723",
+    "category": "Technical Support",
+    "question": "Why do updates sometimes need extra downloads?",
+    "keywords": [
+      "updates",
+      "sometimes",
+      "need",
+      "extra",
+      "downloads",
+      "content",
+      "separately",
+      "keep",
+      "build",
+      "size",
+      "overall",
+      "game",
+      "also",
+      "reduced",
+      "removing",
+      "unused",
+      "assets"
+    ]
+  },
+  {
+    "id": "724",
+    "category": "Technical Support",
+    "question": "What if I have connection issues or lag?",
+    "keywords": [
+      "connection",
+      "issues",
+      "lag",
+      "use",
+      "stable",
+      "wi-fi",
+      "mobile",
+      "close",
+      "background",
+      "apps",
+      "avoid",
+      "overheating"
+    ]
+  },
+  {
+    "id": "725",
+    "category": "Technical Support",
+    "question": "What if the game crashes or gets stuck loading?",
+    "keywords": [
+      "crashing",
+      "keeps crashing",
+      "app crash",
+      "force close",
+      "game",
+      "crashes",
+      "gets",
+      "stuck",
+      "loading",
+      "restart",
+      "app",
+      "device",
+      "close",
+      "background",
+      "apps",
+      "update",
+      "reinstall",
+      "needed"
+    ]
+  },
+  {
+    "id": "726",
+    "category": "Technical Support",
+    "question": "What if the game will not install?",
+    "keywords": [
+      "game",
+      "install",
+      "check",
+      "connection",
+      "storage",
+      "restart",
+      "device",
+      "retry"
+    ]
+  },
+  {
+    "id": "727",
+    "category": "Technical Support",
+    "question": "The game uses a lot of battery or storage. What can I do?",
+    "keywords": [
+      "draining battery",
+      "battery drain",
+      "overheating",
+      "game",
+      "uses",
+      "lot",
+      "battery",
+      "storage",
+      "lower",
+      "brightness",
+      "close",
+      "background",
+      "apps",
+      "clear",
+      "cache",
+      "android",
+      "free",
+      "device"
+    ]
+  },
+  {
+    "id": "728",
+    "category": "Technical Support",
+    "question": "How do I adjust sound or notifications?",
+    "keywords": [
+      "adjust",
+      "sound",
+      "notifications",
+      "open",
+      "settings",
+      "main",
+      "menu"
+    ]
+  },
+  {
+    "id": "729",
+    "category": "Safe & Fair Play",
+    "question": "Does Blitz of Battle have a Fair Play policy?",
+    "keywords": [
+      "blitz",
+      "battle",
+      "fair",
+      "play",
+      "policy",
+      "yes",
+      "safe",
+      "keeps",
+      "game",
+      "competitive"
+    ]
+  },
+  {
+    "id": "730",
+    "category": "Safe & Fair Play",
+    "question": "What behavior is prohibited?",
+    "keywords": [
+      "cheater",
+      "hacker",
+      "hacking",
+      "report player",
+      "exploiter",
+      "cheat report",
+      "behavior",
+      "prohibited",
+      "cheating",
+      "third-party",
+      "software",
+      "account",
+      "sharing",
+      "fraud",
+      "harassment",
+      "afk",
+      "griefing",
+      "abusive"
+    ]
+  },
+  {
+    "id": "731",
+    "category": "Safe & Fair Play",
+    "question": "Are penalties progressive?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "penalties",
+      "progressive",
+      "yes",
+      "escalate",
+      "severity",
+      "repetition",
+      "ranked",
+      "handled",
+      "separately",
+      "casual",
+      "possible"
+    ]
+  },
+  {
+    "id": "732",
+    "category": "Safe & Fair Play",
+    "question": "What happens to players who cheat?",
+    "keywords": [
+      "cheater",
+      "hacker",
+      "hacking",
+      "report player",
+      "exploiter",
+      "cheat report",
+      "banned",
+      "suspended",
+      "account suspended",
+      "happens",
+      "players",
+      "cheat",
+      "cheating",
+      "zero-tolerance",
+      "violation",
+      "result",
+      "permanent",
+      "ban"
+    ]
+  },
+  {
+    "id": "733",
+    "category": "Safe & Fair Play",
+    "question": "How is fair play enforced?",
+    "keywords": [
+      "fair",
+      "play",
+      "enforced",
+      "methods",
+      "used",
+      "enforce",
+      "enforcement",
+      "achieved",
+      "ways",
+      "monitored",
+      "processes",
+      "involved",
+      "ensuring",
+      "automatic",
+      "detection",
+      "manual",
+      "reviews",
+      "contribute"
+    ]
+  },
+  {
+    "id": "734",
+    "category": "Safe & Fair Play",
+    "question": "Can I appeal a penalty?",
+    "keywords": [
+      "appeal",
+      "penalty",
+      "yes",
+      "contact",
+      "support",
+      "request",
+      "review"
+    ]
+  },
+  {
+    "id": "735",
+    "category": "Safe & Fair Play",
+    "question": "Can false or abusive reports be punished?",
+    "keywords": [
+      "false",
+      "abusive",
+      "reports",
+      "punished",
+      "yes",
+      "also",
+      "result",
+      "penalties"
+    ]
+  },
+  {
+    "id": "736",
+    "category": "Safe & Fair Play",
+    "question": "Why was the progression system changed?",
+    "keywords": [
+      "progression",
+      "system",
+      "changed",
+      "make",
+      "hero",
+      "smoother",
+      "cut",
+      "repetitive",
+      "grinding",
+      "add",
+      "rewarding",
+      "long-term",
+      "cosmetic",
+      "systems"
+    ]
+  },
+  {
+    "id": "737",
+    "category": "Safe & Fair Play",
+    "question": "Do I keep my progression after the update?",
+    "keywords": [
+      "keep",
+      "progression",
+      "update",
+      "yes",
+      "existing",
+      "progress",
+      "preserved"
+    ]
+  },
+  {
+    "id": "738",
+    "category": "Safe & Fair Play",
+    "question": "Why is progression now shared across heroes?",
+    "keywords": [
+      "items",
+      "equipment",
+      "build",
+      "progression",
+      "now",
+      "shared",
+      "across",
+      "heroes",
+      "gear",
+      "spell",
+      "ancient",
+      "reduces",
+      "grind",
+      "lets",
+      "enjoy"
+    ]
+  },
+  {
+    "id": "739",
+    "category": "Safe & Fair Play",
+    "question": "What was removed?",
+    "keywords": [
+      "rank",
+      "ranked mode",
+      "comp",
+      "competitive mode",
+      "removed",
+      "ranked",
+      "cards",
+      "old",
+      "roulette",
+      "tokens",
+      "held",
+      "compensated"
+    ]
+  },
+  {
+    "id": "740",
+    "category": "General & Getting Started",
+    "question": "Is Blitz of Battle available on both Android and iOS?",
+    "keywords": [
+      "blitz",
+      "battle",
+      "available",
+      "android",
+      "ios",
+      "yes",
+      "supported",
+      "devices"
+    ]
+  },
+  {
+    "id": "741",
+    "category": "Heroes & Combat",
+    "question": "What is Try Mode?",
+    "keywords": [
+      "skills",
+      "moves",
+      "try",
+      "mode",
+      "lets",
+      "test",
+      "hero's",
+      "abilities",
+      "playstyle",
+      "unlocking",
+      "purchasing",
+      "them"
+    ]
+  },
+  {
+    "id": "742",
+    "category": "General & Getting Started",
+    "question": "How does the match camera work?",
+    "keywords": [
+      "match",
+      "camera",
+      "work",
+      "follows",
+      "action",
+      "default",
+      "also",
+      "use",
+      "free",
+      "view",
+      "pan",
+      "around",
+      "see",
+      "map",
+      "freely"
+    ]
+  },
+  {
+    "id": "743",
+    "category": "Heroes & Combat",
+    "question": "Do I need to own a hero to use Try Mode?",
+    "keywords": [
+      "need",
+      "hero",
+      "use",
+      "try",
+      "mode",
+      "every",
+      "tested",
+      "without",
+      "unlocking",
+      "them",
+      "first"
+    ]
+  },
+  {
+    "id": "744",
+    "category": "Heroes & Combat",
+    "question": "Can I upgrade heroes in Try Mode?",
+    "keywords": [
+      "upgrade",
+      "heroes",
+      "try",
+      "mode",
+      "testing",
+      "save",
+      "progression"
+    ]
+  },
+  {
+    "id": "745",
+    "category": "Heroes & Combat",
+    "question": "Who is Koru?",
+    "keywords": [
+      "battle pass",
+      "season pass",
+      "pass",
+      "koru",
+      "fallen",
+      "monk",
+      "fighter",
+      "introduced",
+      "blitz",
+      "season",
+      "counter-duelist",
+      "turns",
+      "enemy",
+      "aggression",
+      "weapon",
+      "parrying",
+      "attacks",
+      "reflecting"
+    ]
+  },
+  {
+    "id": "746",
+    "category": "Heroes & Combat",
+    "question": "What class is Koru?",
+    "keywords": [
+      "class",
+      "koru",
+      "fighter"
+    ]
+  },
+  {
+    "id": "747",
+    "category": "Heroes & Combat",
+    "question": "How are new heroes released?",
+    "keywords": [
+      "battle pass",
+      "season pass",
+      "pass",
+      "new",
+      "heroes",
+      "released",
+      "introduced",
+      "blitz",
+      "seasonal",
+      "events",
+      "future",
+      "game",
+      "updates"
+    ]
+  },
+  {
+    "id": "748",
+    "category": "Heroes & Combat",
+    "question": "Will Support or Healer heroes be added?",
+    "keywords": [
+      "support",
+      "healer",
+      "heroes",
+      "added",
+      "team",
+      "considering",
+      "especially",
+      "larger",
+      "game",
+      "modes",
+      "3v3",
+      "introduced"
+    ]
+  },
+  {
+    "id": "749",
+    "category": "Heroes & Combat",
+    "question": "Can I customize my controls?",
+    "keywords": [
+      "clunky controls",
+      "unresponsive controls",
+      "skills dont register",
+      "abilities unreliable",
+      "customize",
+      "controls",
+      "custom",
+      "button",
+      "layouts",
+      "planned",
+      "future",
+      "update"
+    ]
+  },
+  {
+    "id": "750",
+    "category": "Heroes & Combat",
+    "question": "Can I save my own builds?",
+    "keywords": [
+      "save",
+      "builds",
+      "custom",
+      "build",
+      "system",
+      "suggested",
+      "currently",
+      "consideration"
+    ]
+  },
+  {
+    "id": "751",
+    "category": "Hero Unlocks & Progression",
+    "question": "What are Hero Trials?",
+    "keywords": [
+      "hero",
+      "trials",
+      "temporarily",
+      "unlock",
+      "selected",
+      "heroes",
+      "use",
+      "them",
+      "real",
+      "matches",
+      "trial",
+      "try",
+      "mode",
+      "different",
+      "systems"
+    ]
+  },
+  {
+    "id": "752",
+    "category": "Hero Unlocks & Progression",
+    "question": "How long does a Hero Trial last?",
+    "keywords": [
+      "long",
+      "hero",
+      "trial",
+      "last",
+      "trials",
+      "hours"
+    ]
+  },
+  {
+    "id": "753",
+    "category": "Hero Unlocks & Progression",
+    "question": "Can I play real matches during a Hero Trial?",
+    "keywords": [
+      "play",
+      "real",
+      "matches",
+      "hero",
+      "trial",
+      "yes"
+    ]
+  },
+  {
+    "id": "754",
+    "category": "Hero Unlocks & Progression",
+    "question": "Can I upgrade a Trial Hero?",
+    "keywords": [
+      "upgrade",
+      "trial",
+      "hero",
+      "yes",
+      "progress",
+      "active"
+    ]
+  },
+  {
+    "id": "755",
+    "category": "Hero Unlocks & Progression",
+    "question": "What happens when a Hero Trial expires?",
+    "keywords": [
+      "happens",
+      "hero",
+      "trial",
+      "expires",
+      "24-hour",
+      "ends",
+      "becomes",
+      "unavailable",
+      "unless",
+      "unlock",
+      "them",
+      "permanently"
+    ]
+  },
+  {
+    "id": "756",
+    "category": "Hero Unlocks & Progression",
+    "question": "Does a Hero Trial permanently unlock the hero?",
+    "keywords": [
+      "hero",
+      "trial",
+      "permanently",
+      "unlock"
+    ]
+  },
+  {
+    "id": "757",
+    "category": "Hero Unlocks & Progression",
+    "question": "Will Koru become available after Season 2?",
+    "keywords": [
+      "hero shards",
+      "hero currency",
+      "gems",
+      "premium currency",
+      "koru",
+      "become",
+      "available",
+      "season",
+      "yes",
+      "hero",
+      "stones",
+      "emeralds",
+      "ends"
+    ]
+  },
+  {
+    "id": "758",
+    "category": "Game Modes & Matchmaking",
+    "question": "How does Soccer Knockout work?",
+    "keywords": [
+      "active ability",
+      "summoner spell",
+      "passives",
+      "relics",
+      "artifacts",
+      "soccer",
+      "knockout",
+      "work",
+      "2v2",
+      "football",
+      "mode",
+      "teams",
+      "compete",
+      "score",
+      "goals",
+      "orcs",
+      "within",
+      "5-minute"
+    ]
+  },
+  {
+    "id": "759",
+    "category": "Game Modes & Matchmaking",
+    "question": "How can I play Soccer Knockout?",
+    "keywords": [
+      "mm",
+      "matchmaking system",
+      "unfair matches",
+      "gear gap",
+      "nerf gun vs tanks",
+      "add friend",
+      "friend list",
+      "friend request",
+      "play",
+      "soccer",
+      "knockout",
+      "supports",
+      "matchmaking",
+      "played",
+      "friends",
+      "always",
+      "available",
+      "custom"
+    ]
+  },
+  {
+    "id": "760",
+    "category": "Game Modes & Matchmaking",
+    "question": "What are Soccer Points?",
+    "keywords": [
+      "soccer",
+      "points",
+      "earned",
+      "winning",
+      "knockout",
+      "matches",
+      "contribute",
+      "blitz",
+      "cup",
+      "progression"
+    ]
+  },
+  {
+    "id": "761",
+    "category": "Game Modes & Matchmaking",
+    "question": "How do limited-time game modes work?",
+    "keywords": [
+      "limited-time",
+      "game",
+      "modes",
+      "work",
+      "become",
+      "available",
+      "special",
+      "events",
+      "return",
+      "periodically"
+    ]
+  },
+  {
+    "id": "762",
+    "category": "Ranked & Competitive",
+    "question": "What is Blitz Cup?",
+    "keywords": [
+      "blitz",
+      "cup",
+      "competitive",
+      "event",
+      "built",
+      "around",
+      "soccer",
+      "knockout",
+      "players",
+      "compete",
+      "player",
+      "country",
+      "leaderboards"
+    ]
+  },
+  {
+    "id": "763",
+    "category": "Ranked & Competitive",
+    "question": "How does Blitz Cup work?",
+    "keywords": [
+      "blitz",
+      "cup",
+      "work",
+      "win",
+      "soccer",
+      "knockout",
+      "matches",
+      "earn",
+      "points",
+      "climb",
+      "leaderboards"
+    ]
+  },
+  {
+    "id": "764",
+    "category": "Ranked & Competitive",
+    "question": "How long does a Blitz Cup last?",
+    "keywords": [
+      "long",
+      "blitz",
+      "cup",
+      "last",
+      "consists",
+      "rounds",
+      "round",
+      "lasting",
+      "week"
+    ]
+  },
+  {
+    "id": "765",
+    "category": "Ranked & Competitive",
+    "question": "What leaderboards are available in Blitz Cup?",
+    "keywords": [
+      "leaderboards",
+      "available",
+      "blitz",
+      "cup",
+      "player",
+      "leaderboard",
+      "country"
+    ]
+  },
+  {
+    "id": "766",
+    "category": "Ranked & Competitive",
+    "question": "Can I change my selected country? in Blitz Cup",
+    "keywords": [
+      "change",
+      "selected",
+      "country",
+      "blitz",
+      "cup",
+      "yes"
+    ]
+  },
+  {
+    "id": "767",
+    "category": "Ranked & Competitive",
+    "question": "What are Golden Boots?",
+    "keywords": [
+      "golden",
+      "boots",
+      "permanent",
+      "achievements",
+      "awarded",
+      "top",
+      "players",
+      "blitz",
+      "cup"
+    ]
+  },
+  {
+    "id": "768",
+    "category": "Ranked & Competitive",
+    "question": "What are Cup Trophies?",
+    "keywords": [
+      "season rewards",
+      "leaderboard rewards",
+      "cup",
+      "trophies",
+      "permanent",
+      "achievements",
+      "awarded",
+      "top",
+      "three",
+      "players"
+    ]
+  },
+  {
+    "id": "769",
+    "category": "Ranked & Competitive",
+    "question": "Are leaderboards global?",
+    "keywords": [
+      "leaderboards",
+      "global",
+      "yes",
+      "display",
+      "rankings",
+      "players",
+      "around",
+      "world"
+    ]
+  },
+  {
+    "id": "770",
+    "category": "Ranked & Competitive",
+    "question": "Will more Blitz Cups be held?",
+    "keywords": [
+      "blitz",
+      "cups",
+      "held",
+      "yes",
+      "planned",
+      "future",
+      "events"
+    ]
+  },
+  {
+    "id": "771",
+    "category": "Progression & Rewards",
+    "question": "Will Reputation receive more rewards in the future?",
+    "keywords": [
+      "prestige",
+      "rep",
+      "reputation",
+      "receive",
+      "rewards",
+      "future",
+      "yes",
+      "planned",
+      "support",
+      "additional",
+      "cosmetic",
+      "progression",
+      "features"
+    ]
+  },
+  {
+    "id": "772",
+    "category": "Blitz Pass & Events",
+    "question": "Which hero is featured in the current Blitz Pass?",
+    "keywords": [
+      "battle pass",
+      "season pass",
+      "pass",
+      "hero",
+      "featured",
+      "current",
+      "blitz",
+      "season",
+      "features",
+      "koru"
+    ]
+  },
+  {
+    "id": "773",
+    "category": "Blitz Pass & Events",
+    "question": "When does the Blitz Pass countdown appear?",
+    "keywords": [
+      "battle pass",
+      "season pass",
+      "pass",
+      "blitz",
+      "countdown",
+      "appear",
+      "remaining",
+      "time",
+      "displayed",
+      "last",
+      "days",
+      "season",
+      "ends"
+    ]
+  },
+  {
+    "id": "774",
+    "category": "Blitz Pass & Events",
+    "question": "Will more in-game events be added?",
+    "keywords": [
+      "in-game",
+      "events",
+      "added",
+      "yes",
+      "team",
+      "plans",
+      "continue",
+      "adding",
+      "activities"
+    ]
+  },
+  {
+    "id": "775",
+    "category": "Store & Purchases",
+    "question": ". Can I gift store packs to other players?",
+    "keywords": [
+      "gift",
+      "store",
+      "packs",
+      "players",
+      "gifting",
+      "considered",
+      "future",
+      "update"
+    ]
+  },
+  {
+    "id": "776",
+    "category": "Account & Security",
+    "question": "Can I change my Avatar Frame?",
+    "keywords": [
+      "change",
+      "avatar",
+      "frame",
+      "yes",
+      "open",
+      "profile",
+      "tap",
+      "settings",
+      "icon",
+      "cosmetics",
+      "menu",
+      "choose",
+      "time"
+    ]
+  },
+  {
+    "id": "777",
+    "category": "Account & Security",
+    "question": "Can I change my Profile Background?",
+    "keywords": [
+      "change",
+      "profile",
+      "background",
+      "yes",
+      "open",
+      "tap",
+      "settings",
+      "icon",
+      "avatar",
+      "cosmetics",
+      "menu",
+      "choose",
+      "time"
+    ]
+  },
+  {
+    "id": "778",
+    "category": "Account & Security",
+    "question": "How do I open the Cosmetics menu?",
+    "keywords": [
+      "open",
+      "cosmetics",
+      "menu",
+      "profile",
+      "tap",
+      "settings",
+      "icon",
+      "avatar",
+      "opens",
+      "change",
+      "frame",
+      "background"
+    ]
+  },
+  {
+    "id": "779",
+    "category": "Technical Support",
+    "question": "Why did the game download additional files after updating?",
+    "keywords": [
+      "game",
+      "download",
+      "additional",
+      "files",
+      "updating",
+      "updates",
+      "content",
+      "separately",
+      "reduce",
+      "overall",
+      "app",
+      "size",
+      "improve",
+      "performance"
+    ]
+  },
+  {
+    "id": "780",
+    "category": "Technical Support",
+    "question": "What should I do if my hero gets stuck or my joystick stops responding?",
+    "keywords": [
+      "hero",
+      "gets",
+      "stuck",
+      "joystick",
+      "stops",
+      "responding",
+      "restart",
+      "match",
+      "possible",
+      "report",
+      "issue",
+      "in-game",
+      "support",
+      "development",
+      "team",
+      "actively",
+      "fixing",
+      "known"
+    ]
+  },
+  {
+    "id": "781",
+    "category": "Technical Support",
+    "question": "Why do skill indicators look different now?",
+    "keywords": [
+      "skill",
+      "indicators",
+      "look",
+      "different",
+      "now",
+      "updated",
+      "better",
+      "match",
+      "ability's",
+      "actual",
+      "hit",
+      "range"
+    ]
+  }
+]

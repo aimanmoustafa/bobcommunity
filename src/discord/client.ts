@@ -7,14 +7,16 @@ import {
   Routes,
   SlashCommandBuilder,
   ChannelType,
+  ActivityType,
 } from "discord.js";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { handleMessage } from "./messageHandler";
 import { handleExitDmReply } from "./exitReplyHandler";
 import { handleMemberJoin, handleMemberLeave } from "./memberEvents";
+import { sendSystemAlertDm } from "./dmNotifier";
 import { handleSlashCommand } from "../commands/feedback";
-import { handleCommunityCommand } from "../commands/community";
+import { handleCommunityCommand, handleCommunityAutocomplete } from "../commands/community";
 
 export function createClient(): Client {
   const client = new Client({
@@ -29,12 +31,23 @@ export function createClient(): Client {
       GatewayIntentBits.DirectMessages,
     ],
     partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember],
+    // Without an explicit presence here, Discord's gateway defaults a bot
+    // to "offline by default" in the IDENTIFY payload -- it never publishes
+    // any status at all, regardless of how many servers or members it has.
+    // This is unrelated to any specific member's guild membership; setting
+    // it explicitly at connect time (not via a separate setPresence() call
+    // after ready) avoids an offline-to-online flicker on every reconnect.
+    presence: {
+      status: "online",
+      activities: [{ name: "the BoB community", type: ActivityType.Watching }],
+    },
   });
 
   client.once(Events.ClientReady, async () => {
     logger.info(`Bot online as ${client.user?.tag}`);
     await registerCommands(client);
     logStartupDiagnostic(client);
+    await sendSystemAlertDm(client, "🟢 Bot Started", `BoB Community Bot is online as ${client.user?.tag}.`).catch(() => {});
   });
 
   // Listen to every message -- covers regular channels, threads, and
@@ -80,6 +93,10 @@ export function createClient(): Client {
           await handleSlashCommand(interaction);
         } else if (interaction.commandName === "community") {
           await handleCommunityCommand(interaction);
+        }
+      } else if (interaction.isAutocomplete()) {
+        if (interaction.commandName === "community") {
+          await handleCommunityAutocomplete(interaction);
         }
       }
     } catch (error) {
@@ -194,13 +211,42 @@ async function registerCommands(client: Client): Promise<void> {
           .setName("assign")
           .setDescription("Assign an open issue to someone, optionally flagging it for follow-up")
           .addStringOption((opt) =>
-            opt.setName("issue").setDescription("Part of the issue's title to match").setRequired(true)
+            opt.setName("issue").setDescription("Start typing to search open issues").setRequired(true).setAutocomplete(true)
           )
           .addStringOption((opt) =>
             opt.setName("to").setDescription("Who it's assigned to").setRequired(true)
           )
           .addBooleanOption((opt) =>
             opt.setName("follow_up").setDescription("Flag for follow-up").setRequired(false)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("resolve")
+          .setDescription("Change an open issue's status")
+          .addStringOption((opt) =>
+            opt.setName("issue").setDescription("Start typing to search open issues").setRequired(true).setAutocomplete(true)
+          )
+          .addStringOption((opt) =>
+            opt
+              .setName("status")
+              .setDescription("New status")
+              .setRequired(true)
+              .addChoices(
+                { name: "Investigating", value: "investigating" },
+                { name: "Acknowledged", value: "acknowledged" },
+                { name: "In Progress", value: "in_progress" },
+                { name: "Resolved", value: "resolved" },
+                { name: "Ignored", value: "ignored" }
+              )
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("faqgap")
+          .setDescription("Find recurring player questions not well covered by the existing FAQ")
+          .addIntegerOption((opt) =>
+            opt.setName("days").setDescription("Lookback window in days (default 30)").setRequired(false)
           )
       )
       .addSubcommand((sub) =>

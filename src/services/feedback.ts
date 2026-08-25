@@ -4,7 +4,7 @@ import { attachToIssue } from "./issues";
 import { recordCategoryMention, checkTrend } from "./trends";
 import { getAiHealthWarning } from "./aiHealth";
 import { generateExecutiveSummary } from "../ai/analyzer";
-import { getAverageResponseTimeMinutes, formatResponseTime } from "./responseTracking";
+import { getAverageResponseTimeMinutes, formatResponseTime, getResponseTimeByCategory } from "./responseTracking";
 import type { MessageAnalysis } from "../ai/analyzer";
 
 interface FeedbackInput {
@@ -437,6 +437,14 @@ export async function generateWeeklyReport(): Promise<string> {
   }
 
   report += `\n*Sentiment:* ${posPercent}% Positive | ${negPercent}% Negative\n`;
+
+  const categoryResponseTimes = await getResponseTimeByCategory(7);
+  if (categoryResponseTimes.length > 0) {
+    report += `\n*Response Time by Category:*\n`;
+    for (const c of categoryResponseTimes.slice(0, 6)) {
+      report += `  - ${formatCategory(c.category)}: ${formatResponseTime(c.avgMinutes)} avg (${c.count} replied)\n`;
+    }
+  }
 
   const criticalCount = stats.byUrgency.find((u: { urgency: string; count: number }) => u.urgency === "critical")?.count || 0;
   if (criticalCount > 0) report += `\n⚠️ *${criticalCount}* critical issues this week -- worth a dev sync.\n`;
