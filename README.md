@@ -49,7 +49,7 @@ AI-powered Discord bot for Blitz of Battle: monitors community feedback, classif
 
 - **Slack**: alerts, digests (orange Blitz of Battle theme)
 - **Notion** (optional, `NOTION_API_KEY`): auto-creates Community Management / Bug / Feature DB entries matching the manual CM workflow, escalates existing entries as issues grow
-- **Exit feedback**: DMs departing members, tracks and forwards their replies
+- **Exit feedback**: DMs departing members, tracks and forwards their replies. A short welcome DM on join (`MEMBER_WELCOME_MESSAGE`) opens a DM channel while a shared server still clearly exists -- Discord blocks opening one cold once someone's already left, but tends to keep an existing channel usable, meaningfully improving exit-DM delivery
 
 ## Deployment
 

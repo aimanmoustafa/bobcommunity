@@ -12,7 +12,7 @@ import { config } from "../config";
 import { logger } from "../utils/logger";
 import { handleMessage } from "./messageHandler";
 import { handleExitDmReply } from "./exitReplyHandler";
-import { handleMemberLeave } from "./memberEvents";
+import { handleMemberJoin, handleMemberLeave } from "./memberEvents";
 import { handleSlashCommand } from "../commands/feedback";
 import { handleCommunityCommand } from "../commands/community";
 
@@ -50,6 +50,17 @@ export function createClient(): Client {
       }
     } catch (error) {
       logger.error("Error handling message", error);
+    }
+  });
+
+  // Someone joined the server -- send a welcome DM. Its real purpose is
+  // opening a DM channel while the bot and this person clearly share a
+  // server, so the exit-feedback DM later has an actual chance of landing.
+  client.on(Events.GuildMemberAdd, async (member) => {
+    try {
+      await handleMemberJoin(member);
+    } catch (error) {
+      logger.error("Error handling member join", error);
     }
   });
 
