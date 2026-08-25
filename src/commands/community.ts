@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, AutocompleteInteraction, EmbedBuilder, Att
 import { generatePulse, generateDailyReport, generateWeeklyReport, generateTopicReport, generateTodoQueue } from "../services/feedback";
 import { backfillWatchedChannels, scanChannel } from "../services/backfill";
 import { assignIssue, resolveIssueByIdOrSearch, resolveIssueId, searchOpenIssuesForAutocomplete } from "../services/issues";
-import { formatIssueForNotionExport } from "../services/notionExport";
+import { formatIssueForNotionExport, formatIssueRawMessages } from "../services/notionExport";
 import { generatePeakTimesReport } from "../services/activity";
 import { generateFaqGapReport } from "../services/faqGap";
 import { THEME_COLORS } from "../utils/theme";
@@ -145,6 +145,7 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
 
     if (sub === "notiondata") {
       const search = interaction.options.getString("issue", true);
+      const format = interaction.options.getString("format") || "raw";
       const issueId = await resolveIssueId(search);
 
       if (!issueId) {
@@ -152,19 +153,28 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
         return;
       }
 
-      const exportText = await formatIssueForNotionExport(issueId);
+      const exportText =
+        format === "summary"
+          ? await formatIssueForNotionExport(issueId)
+          : await formatIssueRawMessages(interaction.client, issueId);
+
       if (!exportText) {
         await interaction.editReply("Could not generate export for that issue.");
         return;
       }
 
+      const intro =
+        format === "summary"
+          ? "Clustered summary -- one Notion entry for the whole issue. Paste into a chat with Claude to create it:"
+          : "Raw messages -- one block per contributing message, nothing merged or summarized. Paste into a chat with Claude and add an action word (\"log these\", \"just bugs\", \"summarize\"):";
+
       // Long exports go as a .txt file so nothing gets silently truncated --
       // the whole point is an exact, complete copy-paste, not a preview.
       if (exportText.length > 1900) {
-        const file = new AttachmentBuilder(Buffer.from(exportText), { name: "notion-export.txt" });
-        await interaction.editReply({ content: "Export ready -- copy this into a chat with Claude to create the real Notion entries:", files: [file] });
+        const file = new AttachmentBuilder(Buffer.from(exportText), { name: format === "summary" ? "notion-export-summary.txt" : "notion-export-raw.txt" });
+        await interaction.editReply({ content: `${intro}\n(sent as a file since it's long)`, files: [file] });
       } else {
-        await interaction.editReply(`Copy this into a chat with Claude to create the real Notion entries:\n\`\`\`\n${exportText}\n\`\`\``);
+        await interaction.editReply(`${intro}\n\`\`\`\n${exportText}\n\`\`\``);
       }
       return;
     }

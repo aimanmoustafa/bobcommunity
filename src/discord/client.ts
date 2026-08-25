@@ -256,6 +256,16 @@ async function registerCommands(client: Client): Promise<void> {
           .addStringOption((opt) =>
             opt.setName("issue").setDescription("Start typing to search open issues").setRequired(true).setAutocomplete(true)
           )
+          .addStringOption((opt) =>
+            opt
+              .setName("format")
+              .setDescription("Raw per-message blocks (default) or one clustered summary")
+              .setRequired(false)
+              .addChoices(
+                { name: "Raw messages (one block per message)", value: "raw" },
+                { name: "Clustered summary (one Notion entry)", value: "summary" }
+              )
+          )
       )
       .addSubcommand((sub) =>
         sub

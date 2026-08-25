@@ -44,7 +44,7 @@ AI-powered Discord bot for Blitz of Battle: monitors community feedback, classif
 | `/community assign issue:<search> to:<name> [follow_up]` | Assign + flag an issue (autocomplete on issue) |
 | `/community resolve issue:<search> status:<choice>` | Change an issue's status (autocomplete on issue) |
 | `/community faqgap [days]` | Recurring player questions not covered by the FAQ |
-| `/community notiondata issue:<search>` | Copy-paste-ready export of an issue's data, formatted exactly like the real Notion sync would -- for when Notion access isn't configured but you still want to hand the data to Claude to create the entries manually |
+| `/community notiondata issue:<search> [format]` | Copy-paste export for pasting into a Notion-creating chat with Claude. `format:raw` (default) gives one block per contributing message -- unmerged, untranslated, no bot-added sentiment/tags, including live-fetched reactions and screenshot/attachment presence. `format:summary` gives one clustered Notion-ready entry instead |
 | `/community scan channel:<any> [window]` | Scan any channel, even unwatched ones |
 | `/feedback list/stats/issues/export/backfill` | Search and manage feedback |
 
