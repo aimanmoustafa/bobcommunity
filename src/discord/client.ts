@@ -8,12 +8,13 @@ import {
   SlashCommandBuilder,
   ChannelType,
   ActivityType,
+  PermissionFlagsBits,
 } from "discord.js";
 import { config } from "../config";
 import { logger } from "../utils/logger";
 import { handleMessage } from "./messageHandler";
 import { handleExitDmReply } from "./exitReplyHandler";
-import { handleMemberJoin, handleMemberLeave } from "./memberEvents";
+import { handleMemberLeave } from "./memberEvents";
 import { sendSystemAlertDm } from "./dmNotifier";
 import { handleSlashCommand } from "../commands/feedback";
 import { handleCommunityCommand, handleCommunityAutocomplete } from "../commands/community";
@@ -66,17 +67,6 @@ export function createClient(): Client {
     }
   });
 
-  // Someone joined the server -- send a welcome DM. Its real purpose is
-  // opening a DM channel while the bot and this person clearly share a
-  // server, so the exit-feedback DM later has an actual chance of landing.
-  client.on(Events.GuildMemberAdd, async (member) => {
-    try {
-      await handleMemberJoin(member);
-    } catch (error) {
-      logger.error("Error handling member join", error);
-    }
-  });
-
   // Someone left the server -- try to DM them for exit feedback and log it to Slack
   client.on(Events.GuildMemberRemove, async (member) => {
     try {
@@ -112,6 +102,7 @@ async function registerCommands(client: Client): Promise<void> {
     new SlashCommandBuilder()
       .setName("feedback")
       .setDescription("Search and manage community feedback")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
       .addSubcommand((sub) =>
         sub
           .setName("list")
@@ -126,6 +117,7 @@ async function registerCommands(client: Client): Promise<void> {
     new SlashCommandBuilder()
       .setName("community")
       .setDescription("Quick community intelligence commands")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
       .addSubcommand((sub) =>
         sub
           .setName("pulse")

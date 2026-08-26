@@ -48,6 +48,10 @@ AI-powered Discord bot for Blitz of Battle: monitors community feedback, classif
 | `/community scan channel:<any> [window]` | Scan any channel, even unwatched ones |
 | `/feedback list/stats/issues/export/backfill` | Search and manage feedback |
 
+## Access Control
+
+Only the user IDs listed in `DISCORD_AUTHORIZED_USERS` (defaults to Ayman's ID) can run `/feedback` or `/community` commands -- checked in code, not just Discord's permission menu, so it can't be bypassed by a server role change. Regular members can't see or use these commands at all.
+
 ## Reliability
 
 - **Crash alerting**: genuine fatal errors (uncaught exceptions/rejections) send a DM before the process exits. Routine Railway redeploys (SIGTERM) stay silent -- no false-alarm noise on every normal deploy. A "🟢 Bot Started" DM confirms every successful boot.
@@ -58,7 +62,7 @@ AI-powered Discord bot for Blitz of Battle: monitors community feedback, classif
 
 - **Slack**: alerts, digests (orange Blitz of Battle theme)
 - **Notion** (optional, `NOTION_API_KEY`): auto-creates Community Management / Bug / Feature DB entries matching the manual CM workflow, escalates existing entries as issues grow
-- **Exit feedback**: DMs departing members, tracks and forwards their replies. A short welcome DM on join (`MEMBER_WELCOME_MESSAGE`) opens a DM channel while a shared server still clearly exists -- Discord blocks opening one cold once someone's already left, but tends to keep an existing channel usable, meaningfully improving exit-DM delivery
+- **Exit feedback**: DMs departing members, tracks and forwards their replies. (A welcome-DM-on-join workaround was tried and removed -- confirmed by direct testing that Discord re-validates shared-server status live at send time, so a previously-opened DM channel doesn't survive someone leaving. This is a hard platform restriction with no code-side fix.)
 
 ## Deployment
 

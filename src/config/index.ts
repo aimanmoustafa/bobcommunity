@@ -23,6 +23,14 @@ export const config = {
     // separate from the general dmUserIds alert list, so who gets escalation
     // pings is configurable independently of who gets forwarded feedback.
     primaryUserId: process.env.DISCORD_PRIMARY_USER_ID || "847724185434325033",
+    // Who's allowed to actually run /feedback and /community commands.
+    // Discord's own permission menu is just visibility/discoverability --
+    // this is the real enforcement, checked in code regardless of anyone's
+    // server role, so it can't be bypassed by an admin role change.
+    authorizedCommandUserIds: (process.env.DISCORD_AUTHORIZED_USERS || "847724185434325033")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean),
   },
   slack: {
     token: required("SLACK_BOT_TOKEN"),
@@ -55,12 +63,6 @@ export const config = {
     exitMessage:
       process.env.MEMBER_EXIT_MESSAGE ||
       "Hey there! You were part of the Blitz of Battle community and we noticed you left. We'd really appreciate your feedback.\n\nWhat were you hoping to see but didn't find? What made you leave? What would you like to see improved?\n\nYour input helps us make the game and community better.",
-    // Sent on join, not to be welcoming for its own sake -- its real job is
-    // opening a DM channel while a shared server still clearly exists, so
-    // the later exit-feedback DM has a real chance of landing. Discord
-    // blocks opening a DM cold once someone's already left, but tends to
-    // keep an existing channel usable.
-    welcomeMessage: process.env.MEMBER_WELCOME_MESSAGE || "Welcome to Blitz of Battle! Glad to have you here!",
     logMemberExitsToSlack: process.env.LOG_MEMBER_EXITS_TO_SLACK === "true",
   },
   notion: {

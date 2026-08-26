@@ -5,6 +5,7 @@ import { assignIssue, resolveIssueByIdOrSearch, resolveIssueId, searchOpenIssues
 import { formatIssueForNotionExport, formatIssueRawMessages } from "../services/notionExport";
 import { generatePeakTimesReport } from "../services/activity";
 import { generateFaqGapReport } from "../services/faqGap";
+import { isAuthorizedUser } from "../utils/authorization";
 import { THEME_COLORS } from "../utils/theme";
 
 function hoursSinceMidnight(): number {
@@ -13,6 +14,11 @@ function hoursSinceMidnight(): number {
 }
 
 export async function handleCommunityCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!isAuthorizedUser(interaction.user.id)) {
+    await interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
+    return;
+  }
+
   const sub = interaction.options.getSubcommand();
 
   await interaction.deferReply({ ephemeral: true });
@@ -224,6 +230,11 @@ export async function handleCommunityCommand(interaction: ChatInputCommandIntera
  * doing fuzzy title search again.
  */
 export async function handleCommunityAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
+  if (!isAuthorizedUser(interaction.user.id)) {
+    await interaction.respond([]);
+    return;
+  }
+
   const focused = interaction.options.getFocused();
   try {
     const issues = await searchOpenIssuesForAutocomplete(focused, 25);

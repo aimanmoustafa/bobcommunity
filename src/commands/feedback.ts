@@ -4,6 +4,7 @@ import { getIssues } from "../services/issues";
 import { toCsv } from "../services/export";
 import { backfillWatchedChannels } from "../services/backfill";
 import { parseFeedbackQuery } from "../services/queryParser";
+import { isAuthorizedUser } from "../utils/authorization";
 import { THEME_COLORS } from "../utils/theme";
 
 function formatCategory(category: string): string {
@@ -11,6 +12,11 @@ function formatCategory(category: string): string {
 }
 
 export async function handleSlashCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!isAuthorizedUser(interaction.user.id)) {
+    await interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
+    return;
+  }
+
   const sub = interaction.options.getSubcommand();
   await interaction.deferReply({ ephemeral: true });
 
