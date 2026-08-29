@@ -47,10 +47,10 @@ async function maybeRunDaily(client: Client, now: Date): Promise<void> {
 
   try {
     const report = await generateDailyReport();
-    await sendDailyReport(report, resolveDigestChannel());
+    const slackOk = await sendDailyReport(report, resolveDigestChannel());
     await sendReportDm(client, "📊 Daily Community Report", report);
     await setState("daily_report", now);
-    logger.info("Daily report sent");
+    logger.info(slackOk ? "Daily report sent (Slack + DM)" : "Daily report sent to DM only -- Slack send FAILED, see error above");
   } catch (error) {
     logger.error("Failed to generate/send daily report", error);
   }
@@ -65,10 +65,10 @@ async function maybeRunWeekly(client: Client, now: Date): Promise<void> {
 
   try {
     const report = await generateWeeklyReport();
-    await sendWeeklyReport(report, resolveDigestChannel());
+    const slackOk = await sendWeeklyReport(report, resolveDigestChannel());
     await sendReportDm(client, "📅 Weekly Community Report", report);
     await setState("weekly_report", now);
-    logger.info("Weekly report sent");
+    logger.info(slackOk ? "Weekly report sent (Slack + DM)" : "Weekly report sent to DM only -- Slack send FAILED, see error above");
   } catch (error) {
     logger.error("Failed to generate/send weekly report", error);
   }

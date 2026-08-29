@@ -113,41 +113,76 @@ export async function updateSlackAlert(
   }
 }
 
-export async function sendDailyReport(report: string, targetChannel: string): Promise<void> {
+// Slack's hard limit is 3000 characters per block's text field; small
+// safety margin below that. A single long report (busy day, many clusters,
+// AI take) can easily exceed this -- stuffing it into one block caused
+// Slack to reject the ENTIRE message ("invalid_attachments"), and since
+// that failure was only logged, not surfaced to the caller, the scheduler
+// kept claiming "Daily report sent" even when Slack had rejected it.
+const SLACK_BLOCK_TEXT_LIMIT = 2900;
+
+function chunkForSlackBlocks(text: string, maxLen: number = SLACK_BLOCK_TEXT_LIMIT): string[] {
+  if (text.length <= maxLen) return [text];
+
+  const chunks: string[] = [];
+  let remaining = text;
+
+  while (remaining.length > maxLen) {
+    // Prefer splitting on a paragraph break, then a line break, within the
+    // window -- only falls back to a hard cut if neither exists nearby,
+    // so a chunk boundary doesn't land mid-sentence unless it truly has to.
+    let splitAt = remaining.lastIndexOf("\n\n", maxLen);
+    if (splitAt < maxLen * 0.5) splitAt = remaining.lastIndexOf("\n", maxLen);
+    if (splitAt < maxLen * 0.5) splitAt = maxLen;
+
+    chunks.push(remaining.slice(0, splitAt));
+    remaining = remaining.slice(splitAt).replace(/^\n+/, "");
+  }
+  if (remaining.length > 0) chunks.push(remaining);
+
+  return chunks;
+}
+
+function buildReportBlocks(title: string, report: string) {
+  return [
+    { type: "header", text: { type: "plain_text", text: title } },
+    ...chunkForSlackBlocks(report).map((chunk) => ({ type: "section", text: { type: "mrkdwn", text: chunk } })),
+  ];
+}
+
+export async function sendDailyReport(report: string, targetChannel: string): Promise<boolean> {
   try {
     await withRetry(
       () =>
         slack.chat.postMessage({
           channel: targetChannel,
-          text: report,
-          attachments: [{ color: THEME_COLORS.orange, blocks: [
-            { type: "header", text: { type: "plain_text", text: "📊 Daily Community Report" } },
-            { type: "section", text: { type: "mrkdwn", text: report } },
-          ] }],
+          text: truncate(report, 150),
+          attachments: [{ color: THEME_COLORS.orange, blocks: buildReportBlocks("📊 Daily Community Report", report) }],
         }),
       { label: "Slack daily report", retries: 3 }
     );
+    return true;
   } catch (error) {
     logger.error("Failed to send daily report after retries", error);
+    return false;
   }
 }
 
-export async function sendWeeklyReport(report: string, targetChannel: string): Promise<void> {
+export async function sendWeeklyReport(report: string, targetChannel: string): Promise<boolean> {
   try {
     await withRetry(
       () =>
         slack.chat.postMessage({
           channel: targetChannel,
-          text: report,
-          attachments: [{ color: THEME_COLORS.orange, blocks: [
-            { type: "header", text: { type: "plain_text", text: "📅 Weekly Community Report" } },
-            { type: "section", text: { type: "mrkdwn", text: report } },
-          ] }],
+          text: truncate(report, 150),
+          attachments: [{ color: THEME_COLORS.orange, blocks: buildReportBlocks("📅 Weekly Community Report", report) }],
         }),
       { label: "Slack weekly report", retries: 3 }
     );
+    return true;
   } catch (error) {
     logger.error("Failed to send weekly report after retries", error);
+    return false;
   }
 }
 

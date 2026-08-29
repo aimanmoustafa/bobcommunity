@@ -48,9 +48,40 @@ export async function sendEmbedToConfiguredUsers(
   }
 }
 
+// Discord embed descriptions have a hard 4096-character limit. A busy
+// day's report can exceed this; silently truncating with .slice() would
+// cut content off with no indication anything was cut -- send multiple
+// embeds instead, so the DM copy is always complete, matching the same
+// no-silent-truncation fix applied to the Slack side.
+function chunkForDiscordEmbeds(text: string, maxLen: number = 4000): string[] {
+  if (text.length <= maxLen) return [text];
+
+  const chunks: string[] = [];
+  let remaining = text;
+
+  while (remaining.length > maxLen) {
+    let splitAt = remaining.lastIndexOf("\n\n", maxLen);
+    if (splitAt < maxLen * 0.5) splitAt = remaining.lastIndexOf("\n", maxLen);
+    if (splitAt < maxLen * 0.5) splitAt = maxLen;
+
+    chunks.push(remaining.slice(0, splitAt));
+    remaining = remaining.slice(splitAt).replace(/^\n+/, "");
+  }
+  if (remaining.length > 0) chunks.push(remaining);
+
+  return chunks;
+}
+
 export async function sendReportDm(client: Client, title: string, content: string): Promise<void> {
-  const embed = new EmbedBuilder().setTitle(title).setColor(THEME_COLORS.orange).setDescription(content.slice(0, 4096)).setTimestamp();
-  await sendEmbedToConfiguredUsers(client, embed);
+  const chunks = chunkForDiscordEmbeds(content);
+  for (let i = 0; i < chunks.length; i++) {
+    const embed = new EmbedBuilder()
+      .setTitle(chunks.length > 1 ? `${title} (${i + 1}/${chunks.length})` : title)
+      .setColor(THEME_COLORS.orange)
+      .setDescription(chunks[i])
+      .setTimestamp();
+    await sendEmbedToConfiguredUsers(client, embed);
+  }
 }
 
 export async function sendAlertDm(
