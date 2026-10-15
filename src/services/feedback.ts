@@ -223,7 +223,21 @@ export async function generateTodoQueue(window?: "24h" | "7d" | "30d"): Promise<
   return report;
 }
 
+/**
+ * Every report is built once and returned in two versions. Slack is a shared
+ * space, so it gets no reply-tracking detail (what still needs an answer,
+ * unanswered counts, response times). The Discord DM version has everything.
+ */
+export interface ReportVersions {
+  slack: string;
+  dm: string;
+}
+
 export async function generateDailyReport(): Promise<string> {
+  return (await generateDailyReportVersions()).dm;
+}
+
+export async function generateDailyReportVersions(): Promise<ReportVersions> {
   const healthWarning = await getAiHealthWarning();
 
   const startOfDay = new Date();
@@ -340,16 +354,15 @@ export async function generateDailyReport(): Promise<string> {
   }
   report += "\n";
 
+  // DM only. Built separately so it can be left out of the Slack version.
+  let needsReplyBlock = "";
   if (needsReplySection.length > 0) {
-    report += `\n🕑 *Needs a reply (${needsReplySection.length})*\n`;
-    report += renderSection(needsReplySection);
-    report += "\n";
+    needsReplyBlock = `\n🕑 *Needs a reply (${needsReplySection.length})*\n${renderSection(needsReplySection)}\n`;
   }
 
+  let tail = "";
   if (needsAttention.length > 0) {
-    report += `\n🔥 *Needs attention*\n`;
-    report += renderSection(needsAttention);
-    report += "\n";
+    tail += `\n🔥 *Needs attention*\n${renderSection(needsAttention)}\n`;
   }
 
   if (!healthWarning) {
@@ -362,15 +375,21 @@ export async function generateDailyReport(): Promise<string> {
     const snapshot =
       `Total feedback today: ${todayRows.length}. Feature requests/suggestions: ${feedbackFeature.length}. ` +
       `Complaints: ${complaints.length}. Payment issues: ${payment.length}. Praise: ${praise.length}. High/critical items: ${needsAttention.length}. ` +
-      `Unanswered: ${stats.unansweredCount}. Sentiment: ${posPercent}% positive, ${negPercent}% negative.`;
+      `Sentiment: ${posPercent}% positive, ${negPercent}% negative.`;
+    // The summary is shared by both versions, so it is given no reply-tracking
+    // numbers and cannot mention them.
     const aiTake = await generateExecutiveSummary(snapshot);
-    if (aiTake) report += `\n🤖 *AI Take:*\n${aiTake}\n`;
+    if (aiTake) tail += `\n🤖 *AI Take:*\n${aiTake}\n`;
   }
 
-  return report;
+  return { slack: report + tail, dm: report + needsReplyBlock + tail };
 }
 
 export async function generateWeeklyReport(): Promise<string> {
+  return (await generateWeeklyReportVersions()).dm;
+}
+
+export async function generateWeeklyReportVersions(): Promise<ReportVersions> {
   const healthWarning = await getAiHealthWarning();
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -414,9 +433,11 @@ export async function generateWeeklyReport(): Promise<string> {
   let report = healthWarning ? `${healthWarning}\n\n` : "";
   report += `*Weekly Community Report*\n\n`;
   report += `*${stats.totalFeedback}* feedback items ${wow(stats.totalFeedback, prevStats.totalFeedback)}\n`;
-  report += `*${stats.unansweredCount}* items still awaiting reply\n\n`;
+  // DM only
+  const awaitingReplyLine = `*${stats.unansweredCount}* items still awaiting reply\n`;
+  const headEnd = report.length;
 
-  report += `*Top Issues:*\n`;
+  report += `\n*Top Issues:*\n`;
   for (const cat of topCategories) {
     const prev = prevCategoryMap[cat.category] || 0;
     report += `  - ${formatCategory(cat.category)}: ${cat.count} ${wow(cat.count, prev)}\n`;
@@ -438,13 +459,16 @@ export async function generateWeeklyReport(): Promise<string> {
 
   report += `\n*Sentiment:* ${posPercent}% Positive | ${negPercent}% Negative\n`;
 
+  // DM only: how fast the team replies is internal, not for the shared channel.
+  let responseTimeBlock = "";
   const categoryResponseTimes = await getResponseTimeByCategory(7);
   if (categoryResponseTimes.length > 0) {
-    report += `\n*Response Time by Category:*\n`;
+    responseTimeBlock = `\n*Response Time by Category:*\n`;
     for (const c of categoryResponseTimes.slice(0, 6)) {
-      report += `  - ${formatCategory(c.category)}: ${formatResponseTime(c.avgMinutes)} avg (${c.count} replied)\n`;
+      responseTimeBlock += `  - ${formatCategory(c.category)}: ${formatResponseTime(c.avgMinutes)} avg (${c.count} replied)\n`;
     }
   }
+  const responseBlockAt = report.length;
 
   const criticalCount = stats.byUrgency.find((u: { urgency: string; count: number }) => u.urgency === "critical")?.count || 0;
   if (criticalCount > 0) report += `\n⚠️ *${criticalCount}* critical issues this week -- worth a dev sync.\n`;
@@ -453,14 +477,21 @@ export async function generateWeeklyReport(): Promise<string> {
     const topIssuesText = openIssues.map((i: { priority: string; title: string; mentionCount: number }) => `${i.title} (${i.priority}, ${i.mentionCount} mentions)`).join("; ") || "none";
     const snapshot =
       `Total feedback: ${stats.totalFeedback} (${wow(stats.totalFeedback, prevStats.totalFeedback)} vs last week). ` +
-      `Unanswered: ${stats.unansweredCount}. Critical issues: ${criticalCount}. ` +
+      `Critical issues: ${criticalCount}. ` +
       `Top categories: ${topCategories.map((c: { category: string; count: number }) => `${c.category} (${c.count})`).join(", ") || "none"}. ` +
       `Open tracked issues: ${topIssuesText}. Sentiment: ${posPercent}% positive, ${negPercent}% negative.`;
     const aiTake = await generateExecutiveSummary(snapshot);
     if (aiTake) report += `\n🤖 *AI Take:*\n${aiTake}\n`;
   }
 
-  return report;
+  // The report above holds only the shared parts. The DM version splices the
+  // private lines back in at the positions recorded while building it.
+  const dm =
+    report.slice(0, headEnd) + awaitingReplyLine +
+    report.slice(headEnd, responseBlockAt) + responseTimeBlock +
+    report.slice(responseBlockAt);
+
+  return { slack: report, dm };
 }
 
 export async function generateTopicReport(topic: string, days: number = 30): Promise<string> {

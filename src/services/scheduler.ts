@@ -1,6 +1,6 @@
 import { Client } from "discord.js";
 import { prisma } from "../database";
-import { generateDailyReport, generateWeeklyReport } from "./feedback";
+import { generateDailyReportVersions, generateWeeklyReportVersions } from "./feedback";
 import { sendDailyReport, sendWeeklyReport } from "../slack/notifier";
 import { sendReportDm, sendStaleItemsDm } from "../discord/dmNotifier";
 import { resolveDigestChannel } from "./routing";
@@ -46,9 +46,9 @@ async function maybeRunDaily(client: Client, now: Date): Promise<void> {
   if (state.lastRunAt && isSameUtcDay(state.lastRunAt, now)) return;
 
   try {
-    const report = await generateDailyReport();
-    const slackOk = await sendDailyReport(report, resolveDigestChannel());
-    await sendReportDm(client, "📊 Daily Community Report", report);
+    const report = await generateDailyReportVersions();
+    const slackOk = await sendDailyReport(report.slack, resolveDigestChannel());
+    await sendReportDm(client, "📊 Daily Community Report", report.dm);
     await setState("daily_report", now);
     logger.info(slackOk ? "Daily report sent (Slack + DM)" : "Daily report sent to DM only -- Slack send FAILED, see error above");
   } catch (error) {
@@ -64,9 +64,9 @@ async function maybeRunWeekly(client: Client, now: Date): Promise<void> {
   if (state.lastRunAt && isSameUtcDay(state.lastRunAt, now)) return;
 
   try {
-    const report = await generateWeeklyReport();
-    const slackOk = await sendWeeklyReport(report, resolveDigestChannel());
-    await sendReportDm(client, "📅 Weekly Community Report", report);
+    const report = await generateWeeklyReportVersions();
+    const slackOk = await sendWeeklyReport(report.slack, resolveDigestChannel());
+    await sendReportDm(client, "📅 Weekly Community Report", report.dm);
     await setState("weekly_report", now);
     logger.info(slackOk ? "Weekly report sent (Slack + DM)" : "Weekly report sent to DM only -- Slack send FAILED, see error above");
   } catch (error) {

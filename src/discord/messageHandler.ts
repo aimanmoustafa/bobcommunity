@@ -48,6 +48,7 @@ export async function handleMessage(
 
   // --- Step 1: Lightweight pre-filter ---
   const prefilter = prefilterMessage(message.content);
+  logger.debug("Prefilter decision", { analyze: prefilter.shouldAnalyze, reason: prefilter.reason });
   if (!prefilter.shouldAnalyze) return { status: "filtered_out" };
 
   // --- Step 2: Dedupe check ---
@@ -95,9 +96,11 @@ export async function handleMessage(
   const targetChannel = resolveAlertChannel(analysis.category, analysis.urgency);
   let slackTs: string | undefined;
 
-  const shouldConsiderAlert = analysis.needsReply === "yes" || analysis.urgency === "high" || analysis.urgency === "critical";
+  // Slack is only for urgent items. "Needs a reply" is private: it goes to the
+  // Discord DM and nowhere else.
+  const isUrgent = analysis.urgency === "high" || analysis.urgency === "critical";
 
-  if (shouldConsiderAlert) {
+  if (isUrgent) {
     if (bypass) {
       slackTs = await sendSlackAlert(
         { analysis, authorName: message.author.username, channelName, messageLink, messageContent: message.content },
@@ -123,6 +126,13 @@ export async function handleMessage(
         );
         slackTs = agg.existingSlackTs;
       }
+    }
+  } else if (analysis.needsReply === "yes") {
+    // Grouped under its own key so a quiet needs-reply group can never make a
+    // later urgent alert in the same category and channel look like a repeat.
+    const agg = await registerReport(`needsreply_${analysis.category}`, message.channel.id, message.author.id, analysis.urgency, analysis.aiSummary);
+    if (agg.isNewGroup) {
+      await sendAlertDm(message.client, analysis, message.author.username, channelName, messageLink, message.content);
     }
   }
 

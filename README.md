@@ -5,7 +5,7 @@ AI-powered Discord bot for Blitz of Battle: monitors community feedback, classif
 ## Core Pipeline
 
 1. Watches configured Discord channels (`DISCORD_WATCHED_CHANNELS`)
-2. Pre-filters noise (short messages, "gg"/"lol", bare links) before spending an AI call
+2. Decides which messages are worth an AI call (see **Message Selection** below)
 3. Dedupes near-identical repeat messages from the same author within 5 minutes
 4. Pulls recent conversation context so the AI understands a message in context
 5. Classifies with Claude via forced tool-use (guaranteed structured output, never fragile JSON parsing): category (21 types), sentiment, urgency, needs-reply, confidence, summary
@@ -19,6 +19,7 @@ AI-powered Discord bot for Blitz of Battle: monitors community feedback, classif
 
 - **Daily digest** (~21:00 UTC / midnight Cairo): clustered by issue, trend deltas vs yesterday, capped per section with overflow pointer, AI-written take
 - **Weekly report** (Sundays): week-over-week deltas, top open issues, most-requested feature, praise highlights
+- **Two versions of each digest.** Slack gets no reply-tracking detail. The Discord DM version adds the "Needs a reply" section (daily), the "items still awaiting reply" count and response time by category (weekly). `/community report` is private to you, so it shows the full version.
 - **`/community pulse [hours]`**: quick snapshot including rolling average response time
 - **`/community peak [window]`**: best time to run an event -- 24h/7d/30d (real dated results) or all-time (recurring weekly pattern)
 - **`/community topic <search>`**: everything mentioning a specific hero/feature/keyword
@@ -26,10 +27,31 @@ AI-powered Discord bot for Blitz of Battle: monitors community feedback, classif
 
 ## Alerts
 
-- Slack alerts for urgent/needs-reply items, aggregated to avoid spam
-- Discord DMs (`DISCORD_DM_USER_IDS`) mirror reports and new alerts
+- Slack alerts fire only for **high or critical urgency**, aggregated to avoid spam
+- **"Needs a reply" is private.** Non-urgent items that need a reply go to the Discord DM only, never Slack
+- Discord DMs (`DISCORD_DM_USER_IDS`) get the full reports and every new alert
 - Toxicity moderation pings: DM-only, actually pings via real @mention, deduplicated per incident
 - Stale-item alerts (unanswered past `STALE_REPLY_HOURS`): DM-only, personal accountability signal, never posted to Slack
+
+## Message Selection
+
+`src/ai/prefilter.ts` decides which Discord messages are sent to the AI. Every pass costs money and every drop is feedback the bot never sees, so the rules are documented at the top of that file. In short: links, mentions and emoji are stripped first; acknowledgements and greetings are dropped; critical phrases, question marks (any language, including `؟` and `¿`), strong feedback keywords, hero names and game terms pass; long prose with no signal passes; everything else is dropped. Keywords match whole words only, so "op" no longer fires on "people" or "stop".
+
+- Hero names (localized for all 8 FAQ languages) and game terms come from the FAQ, in `src/data/prefilterVocabulary.json`.
+- English keyword lists are hand-written; other languages rely on question marks, hero names, shared English game terms and the long-message rule. Non-English statements with none of those are the main known gap.
+- `npm run check:prefilter` runs `tools/prefilter-cases.json` (labeled real and synthetic messages, including known misses and known leaks) through the real filter. When it misjudges something, add the message to that file.
+- Set `LOG_LEVEL=debug` to see which rule decided each message.
+
+### Refreshing FAQ-derived data
+
+When the FAQ changes, regenerate both data files and commit them:
+
+```
+pip install openpyxl
+python3 tools/generate_faq_data.py path/to/faqworkbook.xlsx
+```
+
+This rewrites `src/data/faqReference.json` (used by `/community faqgap`) and `src/data/prefilterVocabulary.json` (used by message selection).
 
 ## Manual Commands
 

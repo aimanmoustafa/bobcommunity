@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "ts-node src/index.ts",
+    "check:prefilter": "npm run build && node tools/check-prefilter.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
